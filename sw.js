@@ -1,7 +1,7 @@
-/* Service worker do Enxoval.
+/* Service worker do "Nosso bebê".
    IMPORTANTE: ao mudar qualquer arquivo, incremente a versão do cache abaixo. */
 "use strict";
-const CACHE = "enxoval-v1";
+const CACHE = "nosso-bebe-v2";
 const ASSETS = [
   "./",
   "./index.html",
@@ -9,7 +9,11 @@ const ASSETS = [
   "./icon-192.png",
   "./icon-512.png",
   "./icon-maskable-192.png",
-  "./icon-maskable-512.png"
+  "./icon-maskable-512.png",
+  "./assets/urso-1.png",
+  "./assets/urso-3.png",
+  "./assets/urso-4.png",
+  "./assets/urso-7.png"
 ];
 
 self.addEventListener("install", (e)=>{
