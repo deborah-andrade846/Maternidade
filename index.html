@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Enxoval — Planejador de Enxoval do Bebê</title>
+<meta name="description" content="Planeje o enxoval do bebê, monte a mala da maternidade e a lista de compras. Funciona offline, sem cadastro.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#d97a8e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Enxoval">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+/* ============ 1. TOKENS ============ */
+:root{
+  --bg:#fdf7f4; --surface:#fff; --surface-2:#fbf3ef; --surface-3:#f5e9e3; --border:#efe0d8;
+  --text:#3b2b2b; --text-soft:#7d6a66; --text-faint:#a99793;
+  --accent:#d97a8e; --accent-d:#b8566d; --accent-l:#fdeaef;
+  --sage:#7ba98f; --sage-l:#e7f3ec;
+  --amber:#d99420; --amber-l:#fdf0da;
+  --sky:#6d9fc4; --sky-l:#e7f0f7;
+  --violet:#8f7bd6; --violet-l:#efeafb;
+  --rose:#e2486b;
+  --shadow-sm:0 1px 2px rgba(70,40,40,.06);
+  --shadow-md:0 4px 14px rgba(70,40,40,.08);
+  --shadow-lg:0 12px 34px rgba(70,40,40,.13);
+  --r-sm:10px; --r-md:16px; --r-lg:22px; --r-xl:28px;
+  --t:.22s cubic-bezier(.4,0,.2,1);
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+[data-theme="dark"]{
+  --bg:#191315; --surface:#241c1f; --surface-2:#2c2226; --surface-3:#35292e; --border:#3c2f34;
+  --text:#f3e9e9; --text-soft:#bda9ab; --text-faint:#8d7a7d;
+  --accent:#e894a5; --accent-d:#f2b0bd; --accent-l:#3d272e;
+  --sage:#8fc0a5; --sage-l:#25352c;
+  --amber:#e8b45a; --amber-l:#372d18;
+  --sky:#8bb9db; --sky-l:#1f2c36;
+  --violet:#ab9ae4; --violet-l:#2a2440;
+  --rose:#f0708c;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.3);
+  --shadow-md:0 4px 14px rgba(0,0,0,.35);
+  --shadow-lg:0 12px 34px rgba(0,0,0,.45);
+}
+
+/* ============ 2. RESET ============ */
+*{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;overflow-wrap:anywhere}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+ul{list-style:none}
+::selection{background:var(--accent-l);color:var(--text)}
+
+/* ============ 3. LAYOUT ============ */
+.app{display:flex;min-height:100vh}
+.sidebar{width:252px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);
+  padding:18px 12px 14px;display:flex;flex-direction:column;gap:3px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.brand{display:flex;align-items:center;gap:10px;padding:6px 10px 16px}
+.brand-mark{width:38px;height:38px;border-radius:13px;background:linear-gradient(140deg,var(--accent),var(--accent-d));
+  display:grid;place-items:center;font-size:19px;box-shadow:var(--shadow-sm);flex-shrink:0}
+.brand-txt strong{display:block;font-size:16px;font-weight:800;letter-spacing:-.2px}
+.brand-txt span{display:block;font-size:11.5px;color:var(--text-faint);font-weight:600}
+.nav-item{display:flex;align-items:center;gap:10px;width:100%;padding:9px 11px;border-radius:13px;
+  font-size:13.8px;font-weight:650;color:var(--text-soft);text-align:left;transition:var(--t)}
+.nav-item .nav-emj{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+.nav-item .nav-lbl{flex:1;min-width:0}
+.nav-item:hover{background:var(--surface-2);color:var(--text)}
+.nav-item.active{background:var(--accent);color:#fff;box-shadow:var(--shadow-sm)}
+.nav-item.active:hover{background:var(--accent)}
+.nav-badge{font-size:11px;font-weight:800;padding:2px 7px;border-radius:99px;background:var(--surface-3);color:var(--text-soft)}
+.nav-item.active .nav-badge{background:rgba(255,255,255,.25);color:#fff}
+.side-foot{margin-top:auto;padding-top:12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;
+  padding:14px 26px;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.topbar h1{font-size:17px;font-weight:800;letter-spacing:-.2px;line-height:1.2}
+.topbar .top-sub{font-size:12.5px;color:var(--text-faint);font-weight:600}
+.menu-btn{display:none;width:38px;height:38px;border-radius:12px;background:var(--surface);
+  border:1px solid var(--border);font-size:17px}
+.top-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.content{padding:24px 26px 70px;max-width:1180px;width:100%;margin:0 auto}
+.tab-scrim{display:none;position:fixed;inset:0;background:rgba(30,15,20,.45);z-index:30}
+.tab-scrim.show{display:block}
+.view{animation:fade .3s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ============ 4. COMPONENTES ============ */
+.view-head{margin-bottom:20px}
+.view-head h2{font-size:25px;font-weight:800;letter-spacing:-.5px;display:flex;align-items:center;gap:10px}
+.view-head h2 .emj{font-size:24px}
+.view-head p{color:var(--text-soft);font-size:14.5px;margin-top:5px;max-width:70ch}
+.section-title{font-size:12px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;
+  color:var(--text-faint);margin:26px 0 12px;display:flex;align-items:center;gap:8px}
+.section-title:first-child{margin-top:0}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);
+  padding:18px;box-shadow:var(--shadow-sm)}
+.card-pad-sm{padding:14px}
+.grid{display:grid;gap:14px}
+.g-2{grid-template-columns:repeat(2,1fr)}
+.g-3{grid-template-columns:repeat(3,1fr)}
+.g-auto{grid-template-columns:repeat(auto-fill,minmax(258px,1fr))}
+.g-wide{grid-template-columns:repeat(auto-fill,minmax(330px,1fr))}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.row-tight{display:flex;align-items:center;gap:6px}
+.spacer{flex:1}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 16px;
+  border-radius:var(--r-md);background:var(--surface);border:1px solid var(--border);
+  font-weight:700;font-size:13.6px;transition:var(--t);color:var(--text);box-shadow:var(--shadow-sm)}
+.btn:hover{border-color:var(--accent);color:var(--accent-d);transform:translateY(-1px)}
+.btn:active{transform:none}
+.btn-primary{background:var(--accent);color:#fff;border-color:transparent}
+.btn-primary:hover{background:var(--accent-d);color:#fff}
+.btn-ghost{background:transparent;box-shadow:none}
+.btn-sm{padding:7px 12px;font-size:12.6px;border-radius:12px}
+.btn-block{width:100%}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.chip-row{display:flex;gap:8px;flex-wrap:wrap}
+.chip{padding:8px 14px;border-radius:99px;background:var(--surface);border:1px solid var(--border);
+  font-size:13px;font-weight:650;color:var(--text-soft);transition:var(--t);white-space:nowrap}
+.chip:hover{border-color:var(--accent);color:var(--accent-d)}
+.chip.on{background:var(--accent);color:#fff;border-color:transparent}
+.chip-sm{padding:5px 11px;font-size:11.8px}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:99px;
+  font-size:11px;font-weight:750;background:var(--surface-3);color:var(--text-soft)}
+.tag-ok{background:var(--sage-l);color:var(--sage)}
+.tag-warn{background:var(--amber-l);color:var(--amber)}
+.tag-miss{background:var(--accent-l);color:var(--accent-d)}
+.tag-info{background:var(--sky-l);color:var(--sky)}
+.stat-row{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);
+  padding:14px 16px;box-shadow:var(--shadow-sm)}
+.stat .stat-lbl{font-size:11.5px;font-weight:750;color:var(--text-faint);text-transform:uppercase;letter-spacing:.6px}
+.stat .stat-val{font-size:23px;font-weight:820;letter-spacing:-.6px;margin-top:3px;line-height:1.15}
+.stat .stat-sub{font-size:12px;color:var(--text-soft);margin-top:2px;font-weight:600}
+.bar{height:9px;border-radius:99px;background:var(--surface-3);overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--accent-d));
+  transition:width .45s cubic-bezier(.4,0,.2,1)}
+.bar.sage>i{background:linear-gradient(90deg,var(--sage),var(--sage))}
+.bar.amber>i{background:linear-gradient(90deg,var(--amber),var(--amber))}
+.empty{text-align:center;padding:38px 20px;color:var(--text-soft);background:var(--surface-2);
+  border:1px dashed var(--border);border-radius:var(--r-lg)}
+.empty .empty-emj{font-size:32px;display:block;margin-bottom:8px}
+.empty strong{display:block;font-size:15px;color:var(--text);margin-bottom:4px}
+.empty p{font-size:13.5px;max-width:44ch;margin:0 auto}
+.search{width:100%;padding:12px 15px;border-radius:var(--r-md);background:var(--surface);
+  border:1px solid var(--border);box-shadow:var(--shadow-sm);transition:var(--t)}
+.search:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-l)}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:12px;font-weight:750;color:var(--text-faint);text-transform:uppercase;letter-spacing:.6px}
+.field input,.field select,.field textarea{padding:10px 13px;border-radius:12px;background:var(--surface-2);
+  border:1px solid var(--border);transition:var(--t);width:100%}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);background:var(--surface)}
+.hint{font-size:12.3px;color:var(--text-faint);font-weight:600}
+
+/* ============ 5. BLOCOS DO DOMÍNIO ============ */
+.hero{background:linear-gradient(135deg,var(--accent-l),var(--surface) 65%);
+  border:1px solid var(--border);border-radius:var(--r-xl);padding:22px;box-shadow:var(--shadow-sm)}
+.hero-top{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap}
+.hero h3{font-size:20px;font-weight:820;letter-spacing:-.4px}
+.hero p{color:var(--text-soft);font-size:13.6px;margin-top:3px}
+.hero-ring{width:78px;height:78px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;
+  background:conic-gradient(var(--accent) calc(var(--p)*1%),var(--surface-3) 0)}
+.hero-ring>span{width:60px;height:60px;border-radius:50%;background:var(--surface);display:grid;
+  place-items:center;font-size:16px;font-weight:820;letter-spacing:-.5px}
+
+.item{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:var(--r-md);
+  background:var(--surface);border:1px solid var(--border);transition:var(--t);box-shadow:var(--shadow-sm)}
+.item:hover{border-color:var(--accent)}
+.item.done{background:var(--sage-l);border-color:color-mix(in srgb,var(--sage) 40%,transparent)}
+.item.part{border-color:var(--amber)}
+.item-emj{width:38px;height:38px;border-radius:12px;background:var(--surface-2);display:grid;
+  place-items:center;font-size:18px;flex-shrink:0}
+.item.done .item-emj{background:color-mix(in srgb,var(--sage) 22%,transparent)}
+.item-body{flex:1;min-width:0}
+.item-name{font-weight:700;font-size:14px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.item-meta{font-size:12.2px;color:var(--text-soft);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap}
+.qty{display:flex;align-items:center;gap:2px;background:var(--surface-2);border:1px solid var(--border);
+  border-radius:99px;padding:3px;flex-shrink:0}
+.qty button{width:28px;height:28px;border-radius:50%;font-size:15px;font-weight:800;color:var(--text-soft);
+  display:grid;place-items:center;transition:var(--t)}
+.qty button:hover{background:var(--accent);color:#fff}
+.qty input{width:38px;text-align:center;background:none;border:none;font-weight:800;font-size:13.5px}
+.qty input:focus{outline:none;color:var(--accent-d)}
+
+.kit{display:flex;flex-direction:column;gap:12px;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-lg);padding:17px;box-shadow:var(--shadow-sm);transition:var(--t)}
+.kit:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.kit.complete{border-color:color-mix(in srgb,var(--sage) 55%,transparent)}
+.kit-head{display:flex;align-items:flex-start;gap:11px}
+.kit-emj{width:44px;height:44px;border-radius:14px;background:var(--accent-l);display:grid;
+  place-items:center;font-size:21px;flex-shrink:0}
+.kit.complete .kit-emj{background:var(--sage-l)}
+.kit h4{font-size:15.5px;font-weight:790;letter-spacing:-.2px}
+.kit .kit-desc{font-size:12.8px;color:var(--text-soft);margin-top:2px}
+.pill-list{display:flex;flex-wrap:wrap;gap:5px}
+
+.tl{position:relative;padding-left:30px}
+.tl::before{content:"";position:absolute;left:9px;top:6px;bottom:6px;width:2px;background:var(--border)}
+.tl-item{position:relative;padding-bottom:20px}
+.tl-item:last-child{padding-bottom:0}
+.tl-dot{position:absolute;left:-30px;top:2px;width:20px;height:20px;border-radius:50%;
+  background:var(--surface);border:2px solid var(--border);display:grid;place-items:center;font-size:10px}
+.tl-item.now .tl-dot{border-color:var(--accent);background:var(--accent);color:#fff}
+.tl-item.past .tl-dot{border-color:var(--sage);background:var(--sage);color:#fff}
+.tl-item h4{font-size:15px;font-weight:780;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tl-item p{font-size:13.2px;color:var(--text-soft);margin-top:3px}
+
+.check{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:13px;
+  background:var(--surface-2);border:1px solid transparent;transition:var(--t);width:100%;text-align:left}
+.check:hover{border-color:var(--border);background:var(--surface)}
+.check.on{background:var(--sage-l)}
+.check .box{width:21px;height:21px;border-radius:7px;border:2px solid var(--border);flex-shrink:0;
+  display:grid;place-items:center;font-size:12px;color:#fff;transition:var(--t)}
+.check.on .box{background:var(--sage);border-color:var(--sage)}
+.check .ck-txt{flex:1;min-width:0;font-size:13.6px;font-weight:650}
+.check.on .ck-txt{text-decoration:line-through;color:var(--text-soft)}
+
+.money{font-variant-numeric:tabular-nums;font-weight:800}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--text-soft);font-weight:650}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+/* ============ 6. MODAL / TOAST ============ */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(40,20,26,.5);backdrop-filter:blur(3px);
+  align-items:center;justify-content:center;padding:18px;z-index:60}
+.modal-bg.show{display:flex}
+.modal{background:var(--surface);border-radius:var(--r-xl);padding:24px;max-width:560px;width:100%;
+  max-height:86vh;overflow:auto;box-shadow:var(--shadow-lg);animation:pop .24s cubic-bezier(.4,0,.2,1)}
+@keyframes pop{from{opacity:0;transform:scale(.95) translateY(10px)}to{opacity:1;transform:none}}
+.modal h3{font-size:19px;font-weight:820;letter-spacing:-.3px;display:flex;align-items:center;gap:9px}
+.modal .modal-sub{color:var(--text-soft);font-size:13.5px;margin-top:5px}
+.modal-body{margin-top:16px;display:flex;flex-direction:column;gap:12px}
+.modal-foot{margin-top:20px;display:flex;gap:9px;justify-content:flex-end;flex-wrap:wrap}
+.modal textarea{min-height:190px;font-size:12.8px;line-height:1.55;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical}
+.toast-wrap{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:70;
+  display:flex;flex-direction:column;align-items:center;pointer-events:none}
+.toast{background:var(--text);color:var(--bg);padding:11px 19px;border-radius:99px;font-size:13.4px;
+  font-weight:700;margin-top:8px;box-shadow:var(--shadow-lg);animation:up .28s cubic-bezier(.4,0,.2,1);
+  display:flex;align-items:center;gap:8px}
+.toast.out{opacity:0;transition:opacity .3s}
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* ============ 7. RESPONSIVO ============ */
+@media(max-width:880px){
+  .sidebar{position:fixed;inset:0 auto 0 0;z-index:40;transform:translateX(-100%);transition:var(--t);
+    box-shadow:var(--shadow-lg);height:100dvh}
+  .sidebar.open{transform:none}
+  .menu-btn{display:grid;place-items:center}
+  .topbar{padding:12px 16px}
+  .content{padding:18px 16px 80px}
+  .view-head h2{font-size:22px}
+}
+@media(max-width:760px){
+  .g-2,.g-3{grid-template-columns:1fr}
+  .g-auto,.g-wide{grid-template-columns:1fr}
+  .stat-row{grid-template-columns:repeat(auto-fit,minmax(132px,1fr))}
+  .hero{padding:18px}
+}
+@media print{.sidebar,.topbar,.toast-wrap{display:none}.content{padding:0}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark">🧸</div>
+      <div class="brand-txt"><strong>Enxoval</strong><span>Planejador do bebê</span></div>
+    </div>
+    <nav id="nav"></nav>
+    <div class="side-foot">
+      <button class="btn btn-sm btn-ghost" data-action="toggle-theme" id="themeBtn">🌙 Modo escuro</button>
+      <button class="btn btn-sm btn-ghost" data-action="sobre">💡 Como funciona</button>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <button class="menu-btn" data-action="open-menu" aria-label="Menu">☰</button>
+      <div>
+        <h1 id="topTitle">Painel</h1>
+        <span class="top-sub" id="topSub"></span>
+      </div>
+      <div class="top-right">
+        <button class="btn btn-sm" data-action="nav" data-tab="compras">🛒 <span id="topFalta">0</span></button>
+      </div>
+    </header>
+    <main class="content" id="content"></main>
+  </div>
+</div>
+<div class="tab-scrim" id="scrim" data-action="close-menu"></div>
+<div class="modal-bg" id="modalBg"><div class="modal" id="modal"></div></div>
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+"use strict";
+
+/* ==================================================================
+   CAMADA 1 — DADOS
+   ================================================================== */
+
+/* Categorias na ordem em que aparecem no app */
+const CATS = [
+  ["Roupinhas","👕"],
+  ["Fraldas","🧷"],
+  ["Higiene & Banho","🛁"],
+  ["Quarto & Sono","🛏️"],
+  ["Alimentação","🍼"],
+  ["Passeio","🚼"],
+  ["Saúde","🩺"],
+  ["Mamãe","🤱"],
+];
+const CAT_EMJ = Object.fromEntries(CATS);
+const CAT_LIST = CATS.map(c=>c[0]);
+
+/* Perfis de enxoval — multiplicam a coluna de quantidade recomendada */
+const PERFIS = [
+  ["essencial","Essencial","🌱","O mínimo que dá conta do primeiro mês"],
+  ["completo","Completo","🌸","Folga para lavar sem correria"],
+  ["luxo","Caprichado","✨","Enxoval largo, com extras e mimos"],
+];
+const PERFIL_IDX = {essencial:0, completo:1, luxo:2};
+
+/* Estações — ajustam itens de frio/calor */
+const ESTACOES = [
+  ["todas","Ano todo","🌤️"],
+  ["frio","Outono / Inverno","🧣"],
+  ["calor","Primavera / Verão","☀️"],
+];
+
+/* Prioridades */
+const PRIOS = {1:["Essencial","tag-miss"], 2:["Importante","tag-warn"], 3:["Opcional","tag-info"]};
+
+/* ITENS: [id, nome, emoji, categoria, {q:[essencial,completo,luxo], preco, un, est, prio, dup, dica}]
+   - q     → quantidade recomendada por perfil
+   - preco → preço médio de referência em R$ (editável pelo usuário)
+   - un    → unidade exibida
+   - est   → "todas" | "frio" | "calor"  (quantidade cai pela metade fora da estação)
+   - prio  → 1 essencial · 2 importante · 3 opcional
+   - dup   → true = dobra com gêmeos                                            */
+const ITENS = [
+  /* --- Roupinhas --- */
+  ["bodycurto","Body manga curta","👶","Roupinhas",{q:[8,12,18],preco:25,un:"un",est:"calor",prio:1,dup:true,dica:"Compre poucos tamanhos RN: o bebê passa rápido. Priorize o P."}],
+  ["bodylongo","Body manga longa","🧥","Roupinhas",{q:[6,10,14],preco:30,un:"un",est:"frio",prio:1,dup:true,dica:"Body de abertura frontal facilita muito nos primeiros dias."}],
+  ["macacaomole","Macacão (mijão)","👕","Roupinhas",{q:[6,10,14],preco:40,un:"un",est:"todas",prio:1,dup:true,dica:"Prefira botão de pressão na frente e nas pernas."}],
+  ["calcamijao","Calça / culote","👖","Roupinhas",{q:[6,10,14],preco:28,un:"un",est:"todas",prio:1,dup:true,dica:"Sem elástico apertado na barriga."}],
+  ["mijaope","Mijão com pé","🦶","Roupinhas",{q:[4,8,10],preco:32,un:"un",est:"frio",prio:2,dup:true,dica:"Resolve meia + calça em uma peça só."}],
+  ["casaquinho","Casaquinho","🧶","Roupinhas",{q:[2,4,6],preco:55,un:"un",est:"frio",prio:1,dup:true,dica:"Um de tricô e um de plush cobrem quase tudo."}],
+  ["macacaosaida","Saída de maternidade","🎀","Roupinhas",{q:[1,1,2],preco:120,un:"un",est:"todas",prio:2,dup:true,dica:"Escolha pensando no clima do dia da alta, não na foto."}],
+  ["meia","Meias (pares)","🧦","Roupinhas",{q:[6,10,14],preco:12,un:"par",est:"todas",prio:1,dup:true,dica:"Some sempre uma. Compre iguais."}],
+  ["luvinha","Luvinha","🧤","Roupinhas",{q:[2,3,4],preco:15,un:"par",est:"todas",prio:2,dup:true,dica:"Evita arranhões nas primeiras semanas."}],
+  ["toucagorro","Touca / gorro","🎩","Roupinhas",{q:[2,3,5],preco:22,un:"un",est:"frio",prio:2,dup:true,dica:"Recém-nascido perde muito calor pela cabeça."}],
+  ["pagaozinho","Pagão / conjunto","👘","Roupinhas",{q:[2,4,6],preco:60,un:"un",est:"frio",prio:2,dup:true,dica:"Bonito para visitas, mas pouco prático no dia a dia."}],
+  ["bodyregata","Body regata","🎽","Roupinhas",{q:[4,6,10],preco:20,un:"un",est:"calor",prio:2,dup:true,dica:"Em dias muito quentes, body regata + fralda basta."}],
+  ["shortsaia","Shorts / saia","🩳","Roupinhas",{q:[2,4,8],preco:25,un:"un",est:"calor",prio:3,dup:true,dica:"Item de foto: compre poucos."}],
+  ["sapatinho","Sapatinho","👟","Roupinhas",{q:[2,3,5],preco:35,un:"par",est:"todas",prio:3,dup:true,dica:"Antes de andar, sapato é enfeite. Meia aquece melhor."}],
+  ["macacaopelucia","Macacão de plush","🧸","Roupinhas",{q:[1,2,3],preco:90,un:"un",est:"frio",prio:3,dup:true,dica:"Não use dentro da cadeirinha do carro: folga demais no cinto."}],
+
+  /* --- Fraldas --- */
+  ["fraldarn","Fralda descartável RN","🧷","Fraldas",{q:[2,3,4],preco:45,un:"pacote",est:"todas",prio:1,dup:true,dica:"Compre pouco RN — muitos bebês já nascem no tamanho P."}],
+  ["fraldap","Fralda descartável P","🧷","Fraldas",{q:[3,4,6],preco:50,un:"pacote",est:"todas",prio:1,dup:true,dica:"É o tamanho que mais dura. Estoque aqui."}],
+  ["fraldapano","Fralda de pano / boca","🧺","Fraldas",{q:[6,12,18],preco:12,un:"un",est:"todas",prio:1,dup:true,dica:"Serve de babador, protetor de ombro e forro do trocador."}],
+  ["lencoumido","Lenço umedecido","🧻","Fraldas",{q:[3,5,8],preco:15,un:"pacote",est:"todas",prio:1,dup:true,dica:"Nos primeiros dias, algodão e água são mais suaves."}],
+  ["pomadaassadura","Pomada de assadura","🧴","Fraldas",{q:[1,2,3],preco:30,un:"un",est:"todas",prio:1,dup:false,dica:"Tenha uma no quarto e outra na bolsa."}],
+  ["fraldaeco","Fralda ecológica","♻️","Fraldas",{q:[0,0,6],preco:60,un:"un",est:"todas",prio:3,dup:true,dica:"Exige rotina de lavagem. Comece com poucas para testar."}],
+  ["lixeirafralda","Lixeira de fralda","🗑️","Fraldas",{q:[0,1,1],preco:120,un:"un",est:"todas",prio:3,dup:false,dica:"Uma lixeira comum com tampa e saco resolve."}],
+
+  /* --- Higiene & Banho --- */
+  ["banheira","Banheira","🛁","Higiene & Banho",{q:[1,1,1],preco:130,un:"un",est:"todas",prio:1,dup:false,dica:"Modelos com suporte poupam a coluna."}],
+  ["toalhacapuz","Toalha com capuz","🧻","Higiene & Banho",{q:[2,3,4],preco:60,un:"un",est:"todas",prio:1,dup:true,dica:"Duas já dão conta se você lava a cada dois dias."}],
+  ["sabonetebb","Sabonete líquido de bebê","🧴","Higiene & Banho",{q:[1,2,3],preco:30,un:"un",est:"todas",prio:1,dup:false,dica:"Use pouco: a pele do recém-nascido resseca fácil."}],
+  ["shampoobb","Shampoo de bebê","🧴","Higiene & Banho",{q:[1,2,2],preco:28,un:"un",est:"todas",prio:2,dup:false,dica:"Nos primeiros meses o sabonete líquido já serve."}],
+  ["pente","Pente e escova macia","🪮","Higiene & Banho",{q:[1,1,2],preco:20,un:"un",est:"todas",prio:2,dup:false,dica:"Escova macia ajuda contra a crosta láctea."}],
+  ["cortaunha","Tesoura ou cortador de unha","✂️","Higiene & Banho",{q:[1,1,1],preco:25,un:"un",est:"todas",prio:1,dup:false,dica:"Corte com o bebê dormindo — é muito mais fácil."}],
+  ["termometrobanho","Termômetro de banho","🌡️","Higiene & Banho",{q:[0,1,1],preco:45,un:"un",est:"todas",prio:3,dup:false,dica:"O cotovelo funciona: água entre 36 °C e 37 °C."}],
+  ["hidratante","Hidratante de bebê","🧴","Higiene & Banho",{q:[1,2,3],preco:35,un:"un",est:"todas",prio:2,dup:false,dica:"Ótimo para a massagem depois do banho."}],
+  ["algodao","Algodão","☁️","Higiene & Banho",{q:[2,3,4],preco:12,un:"pacote",est:"todas",prio:1,dup:true,dica:"Rolo ou bolinha: use com água morna na troca."}],
+  ["cotonete","Haste flexível","🪥","Higiene & Banho",{q:[1,2,2],preco:10,un:"pacote",est:"todas",prio:2,dup:false,dica:"Só na parte externa da orelha e no umbigo, nunca dentro."}],
+  ["trocador","Trocador","🧺","Higiene & Banho",{q:[1,2,2],preco:55,un:"un",est:"todas",prio:1,dup:false,dica:"Um fixo no quarto e um portátil na bolsa."}],
+  ["necessaire","Necessaire de higiene","👜","Higiene & Banho",{q:[1,1,2],preco:60,un:"un",est:"todas",prio:3,dup:false,dica:"Mantenha sempre abastecida dentro da bolsa."}],
+
+  /* --- Quarto & Sono --- */
+  ["berco","Berço","🛏️","Quarto & Sono",{q:[1,1,1],preco:900,un:"un",est:"todas",prio:1,dup:true,dica:"Grades com no máximo 6 cm entre ripas."}],
+  ["colchaoberco","Colchão de berço","🛌","Quarto & Sono",{q:[1,1,1],preco:350,un:"un",est:"todas",prio:1,dup:true,dica:"Firme e do tamanho exato do berço, sem folga nas laterais."}],
+  ["lencolberco","Jogo de lençol de berço","🛏️","Quarto & Sono",{q:[2,3,4],preco:90,un:"jogo",est:"todas",prio:1,dup:true,dica:"Três jogos evitam a corrida da madrugada."}],
+  ["mantacobertor","Manta / cobertor","🧣","Quarto & Sono",{q:[2,3,5],preco:70,un:"un",est:"todas",prio:1,dup:true,dica:"Sono seguro: nada solto no berço. Prefira saco de dormir."}],
+  ["sacodormir","Saco de dormir","🌙","Quarto & Sono",{q:[0,1,2],preco:150,un:"un",est:"frio",prio:2,dup:true,dica:"Aquece sem risco de cobrir o rosto."}],
+  ["moisesbercod","Moisés / berço de balanço","🌛","Quarto & Sono",{q:[0,1,1],preco:400,un:"un",est:"todas",prio:3,dup:true,dica:"Útil para manter o bebê perto nos primeiros meses."}],
+  ["abajur","Luz noturna","💡","Quarto & Sono",{q:[1,1,1],preco:80,un:"un",est:"todas",prio:2,dup:false,dica:"Luz âmbar e fraca não corta o sono de ninguém."}],
+  ["comodatrocador","Cômoda com trocador","🗄️","Quarto & Sono",{q:[0,1,1],preco:800,un:"un",est:"todas",prio:2,dup:false,dica:"Altura na cintura salva as costas."}],
+  ["babaeletronica","Babá eletrônica","📡","Quarto & Sono",{q:[0,1,1],preco:300,un:"un",est:"todas",prio:3,dup:false,dica:"Só faz sentido se o bebê dormir em outro cômodo."}],
+  ["cestoorganizador","Cesto organizador","🧺","Quarto & Sono",{q:[1,2,4],preco:60,un:"un",est:"todas",prio:2,dup:false,dica:"Um por tipo: fraldas, roupas limpas, roupas sujas."}],
+  ["mobile","Móbile","🎐","Quarto & Sono",{q:[0,1,1],preco:90,un:"un",est:"todas",prio:3,dup:false,dica:"Preto e branco chama mais atenção no começo."}],
+  ["umidificador","Umidificador","💨","Quarto & Sono",{q:[0,0,1],preco:200,un:"un",est:"todas",prio:3,dup:false,dica:"Uma bacia de água no quarto já ajuda no ar seco."}],
+
+  /* --- Alimentação --- */
+  ["almofadaamamentacao","Almofada de amamentação","🪑","Alimentação",{q:[0,1,1],preco:130,un:"un",est:"todas",prio:2,dup:false,dica:"Poupa ombro e lombar nas mamadas longas."}],
+  ["babador","Babador","🥣","Alimentação",{q:[4,6,10],preco:18,un:"un",est:"todas",prio:1,dup:true,dica:"Os de tecido atoalhado seguram melhor a golfada."}],
+  ["mamadeira","Mamadeira","🍼","Alimentação",{q:[1,3,5],preco:45,un:"un",est:"todas",prio:2,dup:true,dica:"Compre uma para testar antes de encher o armário."}],
+  ["bombatirale","Bomba tira-leite","🥛","Alimentação",{q:[0,1,1],preco:250,un:"un",est:"todas",prio:2,dup:false,dica:"Muito útil na volta ao trabalho e para aliviar o peito."}],
+  ["potinholeite","Potinho para leite materno","🧊","Alimentação",{q:[0,4,8],preco:15,un:"un",est:"todas",prio:2,dup:true,dica:"Etiquete sempre com data e volume."}],
+  ["esterilizador","Esterilizador","♨️","Alimentação",{q:[0,1,1],preco:180,un:"un",est:"todas",prio:3,dup:false,dica:"Água fervendo por 5 minutos faz o mesmo serviço."}],
+  ["escovamamadeira","Escova de mamadeira","🧽","Alimentação",{q:[1,1,2],preco:20,un:"un",est:"todas",prio:2,dup:false,dica:"Uma escova exclusiva, guardada separada das outras."}],
+  ["bicoschupeta","Chupeta","🍭","Alimentação",{q:[1,2,4],preco:25,un:"un",est:"todas",prio:3,dup:true,dica:"Só depois da amamentação estar bem estabelecida."}],
+
+  /* --- Passeio --- */
+  ["bebeconforto","Bebê conforto","💺","Passeio",{q:[1,1,1],preco:600,un:"un",est:"todas",prio:1,dup:true,dica:"Sem ele a maternidade não libera a alta de carro."}],
+  ["carrinho","Carrinho de bebê","🚼","Passeio",{q:[1,1,1],preco:900,un:"un",est:"todas",prio:1,dup:false,dica:"Teste dobrar sozinha e ver se cabe no porta-malas."}],
+  ["bolsamaternidade","Bolsa maternidade","👜","Passeio",{q:[1,2,2],preco:200,un:"un",est:"todas",prio:1,dup:false,dica:"Mochila deixa as duas mãos livres."}],
+  ["slingcanguru","Sling / canguru","🧣","Passeio",{q:[0,1,1],preco:180,un:"un",est:"todas",prio:2,dup:true,dica:"Confira a posição: rosto livre e joelhos acima do bumbum."}],
+  ["protetorcarrinho","Capa de chuva do carrinho","☔","Passeio",{q:[0,1,1],preco:90,un:"un",est:"todas",prio:3,dup:false,dica:"Confira o modelo do seu carrinho antes."}],
+  ["mosquiteiro","Mosquiteiro","🕸️","Passeio",{q:[0,1,1],preco:50,un:"un",est:"calor",prio:3,dup:false,dica:"Barato e resolve passeio no fim de tarde."}],
+
+  /* --- Saúde --- */
+  ["termometro","Termômetro clínico","🌡️","Saúde",{q:[1,1,1],preco:60,un:"un",est:"todas",prio:1,dup:false,dica:"Febre em recém-nascido é emergência: ligue para o pediatra."}],
+  ["aspiradornasal","Aspirador nasal","👃","Saúde",{q:[1,1,1],preco:40,un:"un",est:"todas",prio:1,dup:false,dica:"Use sempre com soro fisiológico antes."}],
+  ["soroFisiologico","Soro fisiológico","💧","Saúde",{q:[2,3,4],preco:8,un:"un",est:"todas",prio:1,dup:true,dica:"Serve para narinha, olhos e limpeza em geral."}],
+  ["gazeumbigo","Gaze + álcool 70%","🩹","Saúde",{q:[1,2,2],preco:20,un:"un",est:"todas",prio:1,dup:true,dica:"Cuidado do coto umbilical conforme orientação do pediatra."}],
+  ["farmacinha","Estojo de primeiros socorros","🧰","Saúde",{q:[0,1,1],preco:90,un:"un",est:"todas",prio:3,dup:false,dica:"Guarde longe do alcance e confira as validades."}],
+
+  /* --- Mamãe --- */
+  ["camisolaabertura","Camisola com abertura","👗","Mamãe",{q:[2,3,4],preco:90,un:"un",est:"todas",prio:1,dup:false,dica:"Abertura frontal é o que importa para amamentar."}],
+  ["sutiaamamentacao","Sutiã de amamentação","🩲","Mamãe",{q:[2,3,5],preco:70,un:"un",est:"todas",prio:1,dup:false,dica:"Compre no fim da gestação: o tamanho muda com a descida do leite."}],
+  ["absorventepos","Absorvente pós-parto","🩸","Mamãe",{q:[2,3,4],preco:25,un:"pacote",est:"todas",prio:1,dup:false,dica:"Os primeiros dias pedem o modelo noturno."}],
+  ["calcinhapos","Calcinha pós-parto","🩲","Mamãe",{q:[5,8,12],preco:20,un:"un",est:"todas",prio:1,dup:false,dica:"Cintura alta, especialmente se for cesárea."}],
+  ["absorventeseio","Absorvente de seio","🌸","Mamãe",{q:[1,2,3],preco:30,un:"pacote",est:"todas",prio:1,dup:false,dica:"Troque sempre que umedecer, para evitar fissuras."}],
+  ["pomadamamilo","Pomada para mamilos","🧴","Mamãe",{q:[1,1,2],preco:60,un:"un",est:"todas",prio:1,dup:false,dica:"O próprio leite materno também ajuda na cicatrização."}],
+  ["roupao","Roupão / robe","🥻","Mamãe",{q:[1,1,2],preco:130,un:"un",est:"todas",prio:2,dup:false,dica:"Prático para receber visita no quarto."}],
+  ["chinelo","Chinelo antiderrapante","🩴","Mamãe",{q:[1,2,2],preco:40,un:"par",est:"todas",prio:2,dup:false,dica:"O chão do hospital escorrega."}],
+  ["roupaalta","Roupa para a alta","👚","Mamãe",{q:[1,1,1],preco:150,un:"un",est:"todas",prio:2,dup:false,dica:"Leve a roupa que usava no sexto mês de gestação."}],
+  ["documentos","Documentos + cartão do pré-natal","📄","Mamãe",{q:[1,1,1],preco:0,un:"un",est:"todas",prio:1,dup:false,dica:"RG, cartão do plano, cartão da gestante e exames recentes."}],
+];
+
+const ITEM_MAP = Object.fromEntries(ITENS.map(i=>({
+  id:i[0], nome:i[1], emoji:i[2], cat:i[3], ...i[4]
+})).map(o=>[o.id,o]));
+const ITEM_IDS = ITENS.map(i=>i[0]);
+
+/* KITS: combinações geradas a partir do que a pessoa já tem */
+const KITS = [
+  {id:"malabebe",nome:"Mala do bebê",emj:"👶",tipo:["mala"],desc:"O que vai na mala do bebê para a maternidade.",
+   req:["bodycurto","macacaomole","meia","mantacobertor","fraldarn","lencoumido","fraldapano"],
+   opt:["luvinha","toucagorro","casaquinho","macacaosaida","pomadaassadura"],
+   passos:["Separe 3 mudas completas de roupa por dia de internação","Deixe a saída de maternidade em uma sacola à parte","Leve um pacote pequeno de fralda RN e outro P","Etiquete a mala com o nome do bebê"]},
+  {id:"malamamae",nome:"Mala da mamãe",emj:"🤱",tipo:["mala"],desc:"O essencial para os dias de internação.",
+   req:["camisolaabertura","sutiaamamentacao","absorventepos","calcinhapos","chinelo","documentos"],
+   opt:["roupao","roupaalta","absorventeseio","pomadamamilo"],
+   passos:["Documentos e cartão do pré-natal em um envelope só","Roupas confortáveis, com abertura na frente","Deixe a mala pronta a partir de 34 semanas","Carregador de celular com fio longo faz diferença"]},
+  {id:"kitbanho",nome:"Kit banho",emj:"🛁",tipo:["rotina"],desc:"Tudo à mão antes de encher a banheira.",
+   req:["banheira","toalhacapuz","sabonetebb","algodao"],
+   opt:["shampoobb","hidratante","pente","termometrobanho"],
+   passos:["Separe a roupa limpa e a fralda ANTES de despir o bebê","Água entre 36 °C e 37 °C","Uma mão sempre segurando o bebê","Seque bem as dobrinhas e o umbigo"]},
+  {id:"kittroca",nome:"Kit troca de fralda",emj:"🧷",tipo:["rotina"],desc:"A estação de troca montada e reabastecida.",
+   req:["trocador","fraldarn","lencoumido","pomadaassadura"],
+   opt:["algodao","cestoorganizador","fraldapano","lixeirafralda"],
+   passos:["Deixe tudo ao alcance de um braço","Nunca solte o bebê no trocador","Camada fina de pomada em cada troca","Reabasteça o cesto toda noite"]},
+  {id:"kitumbigo",nome:"Cuidado do umbigo",emj:"🩹",tipo:["rotina"],desc:"Rotina do coto umbilical nas primeiras semanas.",
+   req:["gazeumbigo","algodao","soroFisiologico"],
+   opt:["cotonete"],
+   passos:["Limpe a cada troca de fralda","Dobre a fralda para baixo do coto","Deixe arejar, sem cobrir","Procure o pediatra se houver vermelhidão ou cheiro forte"]},
+  {id:"kitsono",nome:"Kit sono seguro",emj:"🛏️",tipo:["quarto"],desc:"Berço montado do jeito recomendado.",
+   req:["berco","colchaoberco","lencolberco"],
+   opt:["sacodormir","mantacobertor","abajur","babaeletronica","mobile"],
+   passos:["Bebê de barriga para cima, sempre","Colchão firme, sem folga nas laterais","Nada solto no berço: sem travesseiro, sem bichinho","Quarto entre 20 °C e 22 °C"]},
+  {id:"kitamamentacao",nome:"Cantinho da amamentação",emj:"🍼",tipo:["rotina"],desc:"O canto onde vocês vão passar muitas horas.",
+   req:["fraldapano","babador","absorventeseio"],
+   opt:["almofadaamamentacao","pomadamamilo","bombatirale","potinholeite","abajur"],
+   passos:["Poltrona ou cama com apoio para os braços","Garrafa de água sempre cheia por perto","Luz baixa para as mamadas da madrugada","Um paninho no ombro para a arrotada"]},
+  {id:"kitmamadeira",nome:"Kit mamadeira",emj:"🥛",tipo:["rotina"],desc:"Para leite ordenhado ou complemento.",
+   req:["mamadeira","escovamamadeira"],
+   opt:["esterilizador","potinholeite","bombatirale"],
+   passos:["Lave logo após o uso, com escova exclusiva","Esterilize uma vez por dia","Leite ordenhado: 4 h em temperatura ambiente, 24 h na geladeira","Nunca aqueça no micro-ondas"]},
+  {id:"kitpasseio",nome:"Kit passeio",emj:"🚼",tipo:["passeio"],desc:"Sair de casa sem esquecer nada.",
+   req:["bolsamaternidade","fraldapano","lencoumido","fraldap"],
+   opt:["carrinho","bebeconforto","slingcanguru","protetorcarrinho","mosquiteiro","necessaire"],
+   passos:["Duas mudas de roupa, sempre","Uma fralda a mais do que você acha que precisa","Saquinho para a roupa suja","Reabasteça a bolsa assim que chegar em casa"]},
+  {id:"kitpediatra",nome:"Consulta no pediatra",emj:"🩺",tipo:["passeio"],desc:"A saída mais frequente do primeiro mês.",
+   req:["bolsamaternidade","documentos","fraldap","lencoumido","mantacobertor"],
+   opt:["bodycurto","babador","bebeconforto"],
+   passos:["Leve a caderneta de vacinação","Anote as dúvidas no celular antes de sair","Roupa fácil de tirar para pesar","Leve uma muda extra: consulta sempre atrasa"]},
+  {id:"kitnoite",nome:"Troca da madrugada",emj:"🌙",tipo:["rotina"],desc:"Resolver a troca sem acordar a casa inteira.",
+   req:["fraldap","lencoumido","abajur","mantacobertor"],
+   opt:["mijaope","trocador","pomadaassadura","sacodormir"],
+   passos:["Deixe tudo separado antes de dormir","Luz baixa, voz baixa, nada de estímulo","Troque só se estiver com cocô ou muito cheia","Volte para o berço ainda sonolento"]},
+  {id:"kitfrio",nome:"Dia frio",emj:"🧣",tipo:["rotina"],desc:"Camadas para os dias gelados.",
+   req:["bodylongo","casaquinho","meia","toucagorro"],
+   opt:["mijaope","pagaozinho","macacaopelucia","mantacobertor","sacodormir"],
+   passos:["Uma camada a mais do que você está usando","Verifique a nuca: quente e seca é o certo","Tire o casaco dentro do carro e do shopping","Nada de macacão grosso na cadeirinha"]},
+  {id:"kitcalor",nome:"Dia quente",emj:"☀️",tipo:["rotina"],desc:"Leve, fresco e sem assadura.",
+   req:["bodyregata","fraldapano","hidratante"],
+   opt:["shortsaia","mosquiteiro","bodycurto","banheira"],
+   passos:["Algodão sempre, nada de sintético","Sombra o tempo todo: sem protetor solar antes dos 6 meses","Ofereça peito com mais frequência","Banho extra no fim do dia refresca e acalma"]},
+];
+
+/* Fases do enxoval por semana gestacional */
+const FASES = [
+  {id:"f1",ate:20,label:"Até 20 semanas",emj:"🌱",cats:["Quarto & Sono"],
+   desc:"Fase das decisões grandes: berço, cômoda e o que exige prazo de entrega.",
+   acoes:["Meça o quarto antes de comprar o berço","Pesquise prazos de entrega dos móveis","Descubra o que dá para receber emprestado"]},
+  {id:"f2",ate:28,label:"21 a 28 semanas",emj:"🌿",cats:["Roupinhas","Fraldas"],
+   desc:"Hora das roupinhas e do estoque de fraldas, sem exagerar no tamanho RN.",
+   acoes:["Compre mais P do que RN","Lave tudo com sabão neutro antes de guardar","Guarde por tamanho, em cestos separados"]},
+  {id:"f3",ate:34,label:"29 a 34 semanas",emj:"🌸",cats:["Higiene & Banho","Alimentação"],
+   desc:"Monte o banho, a estação de troca e o cantinho da amamentação.",
+   acoes:["Monte a estação de troca e teste a altura","Faça o chá de bebê nesta janela","Instale a cadeirinha no carro e aprenda a soltar"]},
+  {id:"f4",ate:99,label:"35 semanas em diante",emj:"🎀",cats:["Mamãe","Saúde","Passeio"],
+   desc:"Mala pronta, documentos separados e o caminho da maternidade decidido.",
+   acoes:["Deixe a mala pronta na porta do quarto","Documentos e exames em um envelope só","Combine quem leva, quem fica e o plano B"]},
+];
+
+/* Abas: [id, título, emoji, subtítulo] */
+const TABS = [
+  ["inicio","Painel","🏠","Onde o enxoval está hoje"],
+  ["itens","Enxoval","📋","Marque o que você já tem"],
+  ["perfil","Perfil","🎀","Ajuste as recomendações ao seu caso"],
+  ["kits","Kits & Rotinas","🧺","Montados com o que você já tem"],
+  ["mala","Mala da Maternidade","👜","Checklist do dia do parto"],
+  ["compras","Lista de Compras","🛒","O que falta, em ordem de prioridade"],
+  ["cha","Chá de Bebê","🎉","Sugestões de presente por faixa de preço"],
+  ["cronograma","Cronograma","📅","O que fazer em cada fase"],
+  ["favoritos","Favoritos","⭐","Sua lista de desejos"],
+  ["historico","Histórico","📜","Tudo que já foi comprado"],
+];
+
+/* ==================================================================
+   CAMADA 2 — ESTADO
+   ================================================================== */
+const LS_KEY = "enxoval_v1";
+const todayStr = ()=> new Date().toISOString().slice(0,10);
+
+let state = {
+  qtd:{},            /* id -> quantidade que a pessoa já tem            */
+  precos:{},         /* id -> preço informado pela pessoa (sobrescreve) */
+  ocultos:[],        /* ids marcados como "não vou usar"                */
+  favoritos:[],      /* ids na lista de desejos                         */
+  presentes:{},      /* id -> nome de quem vai presentear (chá de bebê) */
+  malaCheck:{},      /* id -> true quando já está dentro da mala        */
+  historico:[],      /* [{data,id,qtd,valor}]                           */
+  perfil:"completo",
+  estacao:"todas",
+  bebes:1,
+  nomeBebe:"",
+  dpp:"",
+  orcamento:0,
+  theme:"light",
+};
+
+function load(){
+  try{ const s = JSON.parse(localStorage.getItem(LS_KEY)); if(s) state = {...state, ...s}; }catch(e){}
+  /* migração: garante todos os campos em dados salvos por versões antigas */
+  if(!state.qtd || typeof state.qtd !== "object") state.qtd = {};
+  if(!state.precos) state.precos = {};
+  if(!Array.isArray(state.ocultos)) state.ocultos = [];
+  if(!Array.isArray(state.favoritos)) state.favoritos = [];
+  if(!state.presentes || Array.isArray(state.presentes)) state.presentes = {};
+  if(!state.malaCheck) state.malaCheck = {};
+  if(!Array.isArray(state.historico)) state.historico = [];
+  if(!PERFIL_IDX.hasOwnProperty(state.perfil)) state.perfil = "completo";
+  if(!ESTACOES.some(e=>e[0]===state.estacao)) state.estacao = "todas";
+  if(!(state.bebes>=1)) state.bebes = 1;
+  if(typeof state.orcamento !== "number" || isNaN(state.orcamento)) state.orcamento = 0;
+  /* limpa referências a itens que não existem mais */
+  Object.keys(state.qtd).forEach(id=>{ if(!ITEM_MAP[id]) delete state.qtd[id]; });
+  state.favoritos = state.favoritos.filter(id=>ITEM_MAP[id]);
+  state.ocultos   = state.ocultos.filter(id=>ITEM_MAP[id]);
+}
+function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){} }
+
+/* ==================================================================
+   CAMADA 3 — MOTOR (funções puras, nunca tocam no DOM)
+   ================================================================== */
+
+/* Quantidade recomendada = perfil × estação × número de bebês */
+function recQtd(id){
+  const it = ITEM_MAP[id]; if(!it) return 0;
+  if(state.ocultos.includes(id)) return 0;
+  let base = it.q[PERFIL_IDX[state.perfil]] || 0;
+  if(base === 0) return 0;
+  if(it.est !== "todas" && state.estacao !== "todas" && it.est !== state.estacao){
+    base = Math.max(1, Math.round(base * 0.5));   /* fora de estação: metade, nunca zero */
+  }
+  if(it.dup && state.bebes > 1) base = Math.round(base * (1 + (state.bebes-1) * 0.8));
+  return base;
+}
+const have    = id => Math.max(0, Number(state.qtd[id]) || 0);
+const falta   = id => Math.max(0, recQtd(id) - have(id));
+const precoDe = id => (state.precos[id] != null ? Number(state.precos[id]) : (ITEM_MAP[id]?.preco || 0));
+const custoFalta = id => falta(id) * precoDe(id);
+const isFav   = id => state.favoritos.includes(id);
+const isOculto= id => state.ocultos.includes(id);
+const temTudo = id => recQtd(id) > 0 && falta(id) === 0;
+
+/* Itens que contam para o progresso (recomendação maior que zero) */
+function itensAtivos(){ return ITEM_IDS.filter(id=>recQtd(id) > 0); }
+
+function progresso(ids){
+  const list = ids || itensAtivos();
+  let rec = 0, ok = 0;
+  list.forEach(id=>{ const r = recQtd(id); rec += r; ok += Math.min(have(id), r); });
+  return {rec, ok, pct: rec ? Math.round(ok/rec*100) : 0, itensOk: list.filter(temTudo).length, total: list.length};
+}
+function progressoCat(cat){ return progresso(itensAtivos().filter(id=>ITEM_MAP[id].cat===cat)); }
+
+/* Lista do que falta, ordenada por prioridade → categoria → maior impacto */
+function faltantes({cat=null, prio=null, soFavoritos=false}={}){
+  const ordemCat = Object.fromEntries(CAT_LIST.map((c,i)=>[c,i]));
+  return itensAtivos()
+    .filter(id=>falta(id) > 0)
+    .filter(id=>!cat || ITEM_MAP[id].cat === cat)
+    .filter(id=>!prio || ITEM_MAP[id].prio === prio)
+    .filter(id=>!soFavoritos || isFav(id))
+    .map(id=>({id, ...ITEM_MAP[id], falta:falta(id), rec:recQtd(id), tem:have(id), custo:custoFalta(id)}))
+    .sort((a,b)=> a.prio-b.prio || ordemCat[a.cat]-ordemCat[b.cat] || b.custo-a.custo);
+}
+function custoRestante(prios){
+  return faltantes().filter(f=>!prios || prios.includes(f.prio)).reduce((s,f)=>s+f.custo, 0);
+}
+function gastoTotal(){ return state.historico.reduce((s,h)=>s + (Number(h.valor)||0), 0); }
+
+/* Estado de um item dentro de um kit: nada, algum ou a quantidade toda */
+const estadoItem = id => temTudo(id) ? "ok" : (have(id) > 0 ? "part" : "no");
+
+/* Pontuação de um kit contra o que já existe em casa.
+   "usável" = tem pelo menos uma unidade de cada item obrigatório.
+   "completo" = tem a quantidade recomendada de todos eles. */
+function match(kit){
+  const req = kit.req || [], opt = kit.opt || [];
+  const semNenhum   = req.filter(id=>have(id) === 0);
+  const incompletos = req.filter(id=>have(id) > 0 && !temTudo(id));
+  const optTem      = opt.filter(id=>have(id) > 0).length;
+  const cobertura = req.length ? (req.length - semNenhum.length - incompletos.length*.4)/req.length : 1;
+  const score = cobertura * .75 + (opt.length ? optTem/opt.length : 1) * .25;
+  return {semNenhum, incompletos, faltando:[...semNenhum, ...incompletos], optTem, score,
+          usavel: semNenhum.length === 0,
+          completo: semNenhum.length === 0 && incompletos.length === 0};
+}
+function getKits({tipo=null, mode="all"}={}){
+  const out = [];
+  for(const k of KITS){
+    if(tipo && !k.tipo.includes(tipo)) continue;
+    const m = match(k);
+    if(mode === "prontos"  && !m.completo) continue;
+    if(mode === "usaveis"  && !m.usavel) continue;
+    if(mode === "faltando" && m.usavel) continue;
+    out.push({...k, ...m});
+  }
+  out.sort((a,b)=> (b.completo - a.completo) || (b.usavel - a.usavel) || (b.score - a.score) || a.nome.localeCompare(b.nome));
+  return out;
+}
+
+/* Contagem gestacional a partir da data provável do parto */
+function semanas(){
+  if(!state.dpp) return null;
+  const dpp = new Date(state.dpp + "T00:00:00");
+  if(isNaN(dpp)) return null;
+  const hoje = new Date(todayStr() + "T00:00:00");
+  const dias = Math.round((dpp - hoje)/86400000);
+  const sem = 40 - Math.ceil(dias/7);
+  return {dias, semana: Math.min(45, Math.max(1, sem)), nasceu: dias < 0};
+}
+function faseAtual(){
+  const s = semanas();
+  if(!s) return null;
+  return FASES.find(f=>s.semana <= f.ate) || FASES[FASES.length-1];
+}
+
+/* Mala da maternidade: seções montadas a partir dos kits de mala */
+function gerarMala(){
+  const secoes = [
+    {titulo:"Para o bebê", emj:"👶", ids:[...KITS.find(k=>k.id==="malabebe").req, ...KITS.find(k=>k.id==="malabebe").opt]},
+    {titulo:"Para a mamãe", emj:"🤱", ids:[...KITS.find(k=>k.id==="malamamae").req, ...KITS.find(k=>k.id==="malamamae").opt]},
+  ];
+  return secoes.map(s=>({
+    ...s,
+    itens: s.ids.filter(id=>ITEM_MAP[id] && !isOculto(id)).map(id=>({
+      id, ...ITEM_MAP[id], tem: have(id), essencial: KITS.some(k=>k.tipo.includes("mala") && k.req.includes(id))
+    }))
+  }));
+}
+
+/* Sugestões para o chá de bebê, agrupadas por faixa de preço */
+const FAIXAS = [
+  {id:"ate50",  label:"Até R$ 50",        emj:"🎀", min:0,   max:50},
+  {id:"ate150", label:"R$ 50 a R$ 150",   emj:"🎁", min:50,  max:150},
+  {id:"ate400", label:"R$ 150 a R$ 400",  emj:"💝", min:150, max:400},
+  {id:"acima",  label:"Acima de R$ 400",  emj:"👑", min:400, max:Infinity},
+];
+function sugestoesCha(){
+  const list = faltantes().filter(f=>!state.presentes[f.id]);
+  return FAIXAS.map(f=>({
+    ...f,
+    itens: list.filter(i=>precoDe(i.id) >= f.min && precoDe(i.id) < f.max)
+  })).filter(f=>f.itens.length);
+}
+
+/* As próximas coisas a fazer, misturando fase gestacional e faltas essenciais */
+function proximasAcoes(){
+  const out = [];
+  const fase = faseAtual();
+  if(fase) fase.acoes.slice(0,2).forEach(a=>out.push({emj:fase.emj, txt:a, tipo:"fase"}));
+  const essenciais = faltantes({prio:1});
+  essenciais.slice(0, 4-out.length).forEach(f=>{
+    out.push({emj:f.emoji, txt:`Comprar ${f.falta} ${unLbl(f.un, f.falta)} de ${f.nome.toLowerCase()}`, tipo:"compra", id:f.id});
+  });
+  if(!out.length) out.push({emj:"🎉", txt:"Enxoval completo pelo seu perfil. Aproveite a reta final!", tipo:"ok"});
+  return out;
+}
+
+/* Formatação */
+const brl = v => "R$ " + (Math.round(v)).toLocaleString("pt-BR");
+const UNS = {un:["unidade","unidades"], par:["par","pares"], pacote:["pacote","pacotes"], jogo:["jogo","jogos"]};
+const unLbl = (un, n) => (UNS[un] || [un, un + "s"])[n === 1 ? 0 : 1];
+const plural = (n,s,p) => n === 1 ? s : (p || s+"s");
+function dataBR(iso){
+  if(!iso) return "";
+  const [a,m,d] = iso.split("-");
+  return `${d}/${m}/${a}`;
+}
+
+/* ==================================================================
+   CAMADA 4 — RENDER (funções retornam string; só render() escreve)
+   ================================================================== */
+let currentTab   = "inicio";
+let busca        = "";
+let catAtiva     = "todas";
+let filtroItens  = "todos";     /* todos | falta | tenho | favoritos */
+let kitTipo      = "todos";
+let prioCompras  = 0;           /* 0 = todas */
+let refocarBusca = false;
+
+const esc = s => String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+function head(emj,titulo,desc){
+  return `<div class="view-head"><h2><span class="emj">${emj}</span>${titulo}</h2><p>${desc}</p></div>`;
+}
+function bar(pct, cls){ return `<div class="bar ${cls||""}"><i style="width:${Math.min(100,pct)}%"></i></div>`; }
+function tagPrio(p){ const [lbl,cls] = PRIOS[p]; return `<span class="tag ${cls}">${lbl}</span>`; }
+
+/* Linha de item com contador — usada no Enxoval, nos Favoritos e nas Compras */
+function itemRow(id){
+  const it = ITEM_MAP[id], rec = recQtd(id), tem = have(id), f = falta(id);
+  const cls = rec === 0 ? "" : (f === 0 ? "done" : (tem > 0 ? "part" : ""));
+  return `<div class="item ${cls}" data-row="${id}">
+    <button class="item-emj" data-action="detalhe" data-id="${id}" title="Ver dica">${it.emoji}</button>
+    <div class="item-body">
+      <div class="item-name">${esc(it.nome)}
+        ${isFav(id) ? '<span class="tag tag-warn">⭐ desejo</span>' : ""}
+        ${state.presentes[id] ? `<span class="tag tag-info">🎁 ${esc(state.presentes[id])}</span>` : ""}
+      </div>
+      <div class="item-meta">
+        ${rec === 0
+          ? `<span>${tem} ${esc(unLbl(it.un, tem))} em casa</span><span style="color:var(--text-faint)">fora do seu perfil</span>`
+          : `<span>${tem} de ${rec} ${esc(unLbl(it.un, rec))}</span>` + (f > 0
+              ? `<span style="color:var(--accent-d);font-weight:700">faltam ${f}</span>` + (precoDe(id) ? `<span>· ${brl(custoFalta(id))}</span>` : "")
+              : `<span style="color:var(--sage);font-weight:700">completo</span>`)}
+      </div>
+    </div>
+    <div class="qty">
+      <button data-action="qtd-dec" data-id="${id}" aria-label="Menos">−</button>
+      <input class="qty-input" data-id="${id}" inputmode="numeric" value="${tem}" aria-label="Quantidade de ${esc(it.nome)}">
+      <button data-action="qtd-inc" data-id="${id}" aria-label="Mais">+</button>
+    </div>
+  </div>`;
+}
+
+/* ---------- Painel ---------- */
+function renderInicio(){
+  const p = progresso(), s = semanas(), fase = faseAtual();
+  const restante = custoRestante(), essencial = custoRestante([1]);
+  const prontos = getKits({mode:"prontos"}).length, usaveis = getKits({mode:"usaveis"}).length;
+  const nome = state.nomeBebe ? esc(state.nomeBebe) : "do bebê";
+
+  const hero = `<div class="hero">
+    <div class="hero-top">
+      <div class="hero-ring" style="--p:${p.pct}"><span>${p.pct}%</span></div>
+      <div style="flex:1;min-width:180px">
+        <h3>Enxoval ${nome}</h3>
+        <p>${p.itensOk} de ${p.total} itens completos · perfil ${esc(PERFIS.find(x=>x[0]===state.perfil)[1].toLowerCase())}${state.bebes>1?` · ${state.bebes} bebês`:""}</p>
+        <div style="margin-top:12px">${bar(p.pct)}</div>
+      </div>
+      ${s ? `<div style="text-align:right;min-width:120px">
+        <div class="stat-lbl" style="font-size:11.5px;font-weight:750;color:var(--text-faint);text-transform:uppercase;letter-spacing:.6px">
+          ${s.nasceu ? "Nasceu há" : "Faltam"}</div>
+        <div style="font-size:26px;font-weight:820;letter-spacing:-.8px">${Math.abs(s.dias)}</div>
+        <div class="hint">${plural(Math.abs(s.dias),"dia")} · ${s.nasceu ? "parabéns! 🎉" : `${s.semana}ª semana`}</div>
+      </div>` : `<div style="min-width:150px">
+        <button class="btn btn-sm btn-primary" data-action="nav" data-tab="perfil">📅 Informar a data prevista</button>
+      </div>`}
+    </div>
+  </div>`;
+
+  const stats = `<div class="stat-row" style="margin-top:16px">
+    <div class="stat"><div class="stat-lbl">Falta comprar</div><div class="stat-val money">${brl(restante)}</div>
+      <div class="stat-sub">${faltantes().length} ${plural(faltantes().length,"item","itens")} pendentes</div></div>
+    <div class="stat"><div class="stat-lbl">Só o essencial</div><div class="stat-val money" style="color:var(--accent-d)">${brl(essencial)}</div>
+      <div class="stat-sub">${faltantes({prio:1}).length} ${plural(faltantes({prio:1}).length,"item","itens")} sem os quais não dá</div></div>
+    <div class="stat"><div class="stat-lbl">Já investido</div><div class="stat-val money" style="color:var(--sage)">${brl(gastoTotal())}</div>
+      <div class="stat-sub">${state.historico.length} ${plural(state.historico.length,"registro")}</div></div>
+    <div class="stat"><div class="stat-lbl">Kits completos</div><div class="stat-val">${prontos}<span style="font-size:15px;color:var(--text-faint)">/${KITS.length}</span></div>
+      <div class="stat-sub">${usaveis} já ${plural(usaveis,"dá","dão")} para fazer</div></div>
+  </div>`;
+
+  const acoes = `<div class="section-title">👉 Próximos passos</div>
+    <div class="grid g-2">${proximasAcoes().map(a=>`
+      <div class="card card-pad-sm row" style="gap:12px">
+        <div class="item-emj">${a.emj}</div>
+        <div style="flex:1;min-width:0"><strong style="font-size:14px">${esc(a.txt)}</strong>
+        <div class="hint">${a.tipo === "fase" ? (fase ? esc(fase.label) : "") : a.tipo === "compra" ? "Item essencial" : "Tudo em dia"}</div></div>
+        ${a.tipo === "compra" ? `<button class="btn btn-sm" data-action="nav" data-tab="compras">Ver</button>` : ""}
+      </div>`).join("")}</div>`;
+
+  const cats = `<div class="section-title">📊 Progresso por categoria</div>
+    <div class="grid g-auto">${CAT_LIST.map(c=>{
+      const pc = progressoCat(c);
+      if(!pc.total) return "";
+      return `<button class="card card-pad-sm" style="text-align:left" data-action="ir-cat" data-cat="${esc(c)}">
+        <div class="row" style="gap:9px;margin-bottom:9px">
+          <div class="item-emj">${CAT_EMJ[c]}</div>
+          <div style="flex:1;min-width:0"><strong style="font-size:14px">${esc(c)}</strong>
+          <div class="hint">${pc.itensOk}/${pc.total} itens · ${pc.pct}%</div></div>
+        </div>${bar(pc.pct, pc.pct===100?"sage":"")}
+      </button>`;
+    }).join("")}</div>`;
+
+  return hero + stats + acoes + cats;
+}
+
+/* ---------- Enxoval ---------- */
+function renderItens(){
+  const p = progresso();
+  const filtros = [["todos","Todos"],["falta","Ainda falta"],["tenho","Já tenho"],["favoritos","⭐ Desejos"]];
+  return head("📋","Enxoval","Marque a quantidade que você já tem de cada item. As recomendações vêm do seu perfil.") +
+  `<input class="search" id="buscaItens" placeholder="Buscar item…" value="${esc(busca)}" autocomplete="off">
+   <div class="chip-row" style="margin:14px 0 10px">
+     <button class="chip ${catAtiva==="todas"?"on":""}" data-action="filtro-cat" data-cat="todas">Tudo</button>
+     ${CAT_LIST.map(c=>`<button class="chip ${catAtiva===c?"on":""}" data-action="filtro-cat" data-cat="${esc(c)}">${CAT_EMJ[c]} ${esc(c)}</button>`).join("")}
+   </div>
+   <div class="chip-row" style="margin-bottom:16px">
+     ${filtros.map(f=>`<button class="chip chip-sm ${filtroItens===f[0]?"on":""}" data-action="filtro-itens" data-f="${f[0]}">${f[1]}</button>`).join("")}
+     <span class="spacer"></span>
+     <button class="chip chip-sm" data-action="ver-ocultos">🚫 Ocultos (${state.ocultos.length})</button>
+   </div>
+   <div class="card card-pad-sm" id="itensHead" style="margin-bottom:16px">${headerProgresso(p)}</div>
+   <div id="itensList">${listaItens()}</div>`;
+}
+function headerProgresso(p){
+  return `<div class="row" style="gap:10px">
+    <div style="flex:1;min-width:150px">
+      <strong style="font-size:14px">${p.itensOk} de ${p.total} itens completos</strong>
+      <div class="hint">${p.ok} de ${p.rec} peças · faltam ${brl(custoRestante())}</div>
+    </div>
+    <strong style="font-size:19px;letter-spacing:-.5px">${p.pct}%</strong>
+    <div style="flex-basis:100%;height:0"></div>
+    ${bar(p.pct, p.pct===100?"sage":"")}
+  </div>`;
+}
+function listaItens(){
+  const q = busca.trim().toLowerCase();
+  const ids = ITEM_IDS.filter(id=>{
+    const it = ITEM_MAP[id];
+    if(isOculto(id)) return false;
+    if(catAtiva !== "todas" && it.cat !== catAtiva) return false;
+    if(q && !(it.nome.toLowerCase().includes(q) || it.cat.toLowerCase().includes(q))) return false;
+    if(filtroItens === "falta" && falta(id) === 0) return false;
+    if(filtroItens === "tenho" && have(id) === 0) return false;
+    if(filtroItens === "favoritos" && !isFav(id)) return false;
+    if(recQtd(id) === 0 && filtroItens !== "todos") return false;
+    return true;
+  });
+  if(!ids.length) return `<div class="empty"><span class="empty-emj">🔍</span><strong>Nada por aqui</strong>
+    <p>Tente outra busca, outra categoria ou volte para o filtro “Todos”.</p></div>`;
+  const porCat = {};
+  ids.forEach(id=>{ (porCat[ITEM_MAP[id].cat] ||= []).push(id); });
+  return CAT_LIST.filter(c=>porCat[c]).map(c=>{
+    const pc = progressoCat(c);
+    return `<div class="section-title">${CAT_EMJ[c]} ${esc(c)}
+      <span class="tag ${pc.pct===100?"tag-ok":""}">${pc.pct}%</span></div>
+      <div class="grid" style="gap:9px">${porCat[c].map(itemRow).join("")}</div>`;
+  }).join("");
+}
+
+/* ---------- Perfil ---------- */
+function renderPerfil(){
+  const s = semanas();
+  const p = progresso();
+  return head("🎀","Perfil do enxoval","Tudo o que você marcar aqui muda as quantidades recomendadas em todas as outras abas.") +
+  `<div class="grid g-2">
+    <div class="card">
+      <div class="section-title">👶 Sobre o bebê</div>
+      <div class="grid" style="gap:14px">
+        <div class="field"><label>Nome ou apelido</label>
+          <input id="inNome" value="${esc(state.nomeBebe)}" placeholder="Ex.: Bento, Feijãozinho…" autocomplete="off"></div>
+        <div class="field"><label>Data provável do parto</label>
+          <input id="inDpp" type="date" value="${esc(state.dpp)}">
+          <span class="hint">${s ? (s.nasceu ? `Nasceu há ${Math.abs(s.dias)} ${plural(Math.abs(s.dias),"dia")} 🎉`
+             : `${s.semana}ª semana · faltam ${s.dias} ${plural(s.dias,"dia")} (${dataBR(state.dpp)})`)
+             : "Usada para o cronograma e a contagem regressiva."}</span></div>
+        <div class="field"><label>Quantos bebês</label>
+          <div class="chip-row">${[1,2,3].map(n=>`<button class="chip ${state.bebes===n?"on":""}" data-action="set-bebes" data-n="${n}">${n === 1 ? "👶 Um" : n === 2 ? "👶👶 Gêmeos" : "👶👶👶 Trigêmeos"}</button>`).join("")}</div>
+          <span class="hint">Roupas, fraldas e itens de consumo aumentam 80% por bebê extra.</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">🌸 Tamanho do enxoval</div>
+      <div class="grid" style="gap:9px">
+        ${PERFIS.map(pf=>`<button class="check ${state.perfil===pf[0]?"on":""}" data-action="set-perfil" data-p="${pf[0]}">
+          <div class="box">${state.perfil===pf[0]?"✓":""}</div>
+          <div class="ck-txt" style="text-decoration:none;color:var(--text)">${pf[2]} <strong>${pf[1]}</strong>
+            <div class="hint" style="font-weight:600">${pf[3]}</div></div>
+        </button>`).join("")}
+      </div>
+      <div class="section-title">🌤️ Estação dos primeiros meses</div>
+      <div class="chip-row">${ESTACOES.map(e=>`<button class="chip ${state.estacao===e[0]?"on":""}" data-action="set-estacao" data-e="${e[0]}">${e[2]} ${e[1]}</button>`).join("")}</div>
+      <p class="hint" style="margin-top:8px">Fora de estação, peças de frio ou calor entram com metade da quantidade — nunca somem da lista.</p>
+      <div class="section-title">💰 Orçamento total</div>
+      <div class="field"><input id="inOrc" inputmode="decimal" value="${state.orcamento || ""}" placeholder="Ex.: 6000"></div>
+      <p class="hint" style="margin-top:8px">Opcional. Aparece como barra na Lista de Compras.</p>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div class="row">
+      <div style="flex:1;min-width:200px">
+        <strong>Com esse perfil, o enxoval tem ${p.rec} peças em ${p.total} itens.</strong>
+        <div class="hint">Custo estimado do que ainda falta: ${brl(custoRestante())}.</div>
+      </div>
+      <button class="btn btn-sm" data-action="exportar">📤 Exportar dados</button>
+      <button class="btn btn-sm" data-action="zerar">🗑️ Recomeçar do zero</button>
+    </div>
+  </div>`;
+}
+
+/* ---------- Kits ---------- */
+function renderKits(){
+  const tipos = [["todos","Todos"],["mala","👜 Mala"],["rotina","🔁 Rotinas"],["quarto","🛏️ Quarto"],["passeio","🚼 Passeio"]];
+  const kits = getKits({tipo: kitTipo === "todos" ? null : kitTipo});
+  return head("🧺","Kits & Rotinas","Cada kit junta os itens de uma situação real. Verde quer dizer que já dá para fazer com o que você tem.") +
+  `<div class="chip-row" style="margin-bottom:16px">
+    ${tipos.map(t=>`<button class="chip ${kitTipo===t[0]?"on":""}" data-action="filtro-kit" data-t="${t[0]}">${t[1]}</button>`).join("")}
+  </div>
+  <div class="grid g-wide">${kits.map(k=>{
+    const pctK = Math.round(k.score*100);
+    return `<div class="kit ${k.completo?"complete":""}">
+      <div class="kit-head">
+        <div class="kit-emj">${k.emj}</div>
+        <div style="flex:1;min-width:0">
+          <h4>${esc(k.nome)} ${k.completo ? '<span class="tag tag-ok">pronto</span>'
+            : k.usavel ? `<span class="tag tag-warn">dá para fazer</span>`
+            : `<span class="tag tag-miss">faltam ${k.semNenhum.length}</span>`}</h4>
+          <div class="kit-desc">${esc(k.desc)}</div>
+        </div>
+      </div>
+      ${bar(pctK, k.completo?"sage":"")}
+      <div class="pill-list">${k.req.map(id=>{
+        const e = estadoItem(id);
+        return `<span class="tag ${e==="ok"?"tag-ok":e==="part"?"tag-warn":"tag-miss"}">${ITEM_MAP[id].emoji} ${esc(ITEM_MAP[id].nome)}${
+          e==="ok"?" ✓":e==="part"?` ${have(id)}/${recQtd(id)}`:""}</span>`;
+      }).join("")}</div>
+      ${k.usavel && !k.completo ? `<div class="hint">Dá para fazer com o que você tem — faltam ${k.incompletos.length} ${plural(k.incompletos.length,"item","itens")} para a quantidade recomendada.</div>` : ""}
+      ${k.opt.length ? `<div class="hint">Extras: ${k.opt.map(id=>`${ITEM_MAP[id].emoji} ${esc(ITEM_MAP[id].nome)}${have(id)>0?" ✓":""}`).join(" · ")}</div>` : ""}
+      <div class="row">
+        <button class="btn btn-sm" data-action="kit-detalhe" data-id="${k.id}">📖 Como usar</button>
+        ${k.faltando.length ? `<button class="btn btn-sm ${k.usavel?"":"btn-primary"}" data-action="kit-falta" data-id="${k.id}">🛒 Ver o que falta</button>` : ""}
+      </div>
+    </div>`;
+  }).join("")}</div>`;
+}
+
+/* ---------- Mala da maternidade ---------- */
+function renderMala(){
+  const secoes = gerarMala();
+  const todos = secoes.flatMap(s=>s.itens);
+  const check = todos.filter(i=>state.malaCheck[i.id]).length;
+  const s = semanas();
+  const alerta = s && s.semana >= 34 && check < todos.length
+    ? `<div class="card card-pad-sm" style="border-color:var(--accent);background:var(--accent-l);margin-bottom:16px">
+        ⏰ <strong>Você está na ${s.semana}ª semana.</strong> A recomendação é ter a mala pronta a partir de 34 semanas.</div>` : "";
+  return head("👜","Mala da Maternidade","Marque conforme for colocando na mala. O que você ainda não tem em casa aparece destacado.") +
+  alerta +
+  `<div class="card card-pad-sm" style="margin-bottom:16px">
+    <div class="row" style="gap:12px">
+      <div style="flex:1;min-width:150px"><strong>${check} de ${todos.length} itens na mala</strong>
+        <div class="hint">${todos.filter(i=>i.tem === 0).length} ainda não estão em casa</div></div>
+      <div style="flex:2;min-width:160px">${bar(todos.length ? Math.round(check/todos.length*100) : 0, check===todos.length?"sage":"")}</div>
+      <button class="btn btn-sm" data-action="mala-limpar">↺ Desmarcar</button>
+      <button class="btn btn-sm" data-action="mala-copiar">📋 Copiar lista</button>
+    </div>
+  </div>
+  ${secoes.map(sec=>`
+    <div class="section-title">${sec.emj} ${esc(sec.titulo)}</div>
+    <div class="grid g-2" style="gap:8px">${sec.itens.map(i=>`
+      <button class="check ${state.malaCheck[i.id]?"on":""}" data-action="mala-toggle" data-id="${i.id}">
+        <div class="box">${state.malaCheck[i.id]?"✓":""}</div>
+        <div class="ck-txt">${i.emoji} ${esc(i.nome)}
+          ${i.essencial ? "" : '<span class="tag" style="margin-left:4px">extra</span>'}
+          ${i.tem === 0 ? '<span class="tag tag-miss" style="margin-left:4px">não tem em casa</span>' : ""}
+        </div>
+      </button>`).join("")}</div>`).join("")}
+  <div class="card" style="margin-top:22px">
+    <div class="section-title">📌 Não esqueça</div>
+    <ul class="grid g-2" style="gap:8px">
+      ${["Documentos e cartão do pré-natal em um envelope só","Carregador de celular com fio longo","Dinheiro trocado para estacionamento","Lista de telefones em papel","Plano de parto impresso, se tiver","Roupa e mala do acompanhante"]
+        .map(t=>`<li class="row" style="gap:8px;align-items:flex-start"><span>•</span><span class="hint" style="font-size:13.4px">${t}</span></li>`).join("")}
+    </ul>
+  </div>`;
+}
+
+/* ---------- Lista de compras ---------- */
+function renderCompras(){
+  const prios = [[0,"Tudo"],[1,"🔴 Essenciais"],[2,"🟡 Importantes"],[3,"🔵 Opcionais"]];
+  const list = faltantes(prioCompras ? {prio:prioCompras} : {});
+  const total = list.reduce((s,f)=>s+f.custo, 0);
+  const gasto = gastoTotal();
+  const orc = state.orcamento;
+  const orcBar = orc ? `<div style="margin-top:12px">
+      ${bar(Math.round(gasto/orc*100), gasto > orc ? "amber" : "sage")}
+      <div class="hint" style="margin-top:6px">${brl(gasto)} de ${brl(orc)} usados${
+        gasto + total > orc ? ` · a lista completa passa em ${brl(gasto+total-orc)}` : ` · sobra ${brl(orc-gasto)}`}</div>
+    </div>` : "";
+
+  return head("🛒","Lista de Compras","Só o que ainda falta, na ordem em que costuma fazer diferença. Ao registrar uma compra, a quantidade entra no seu enxoval.") +
+  `<div class="card card-pad-sm" style="margin-bottom:16px">
+    <div class="row" style="gap:12px">
+      <div style="flex:1;min-width:170px"><strong style="font-size:15px">${list.length} ${plural(list.length,"item","itens")} · ${brl(total)}</strong>
+        <div class="hint">Preços médios de referência, editáveis em cada item.</div></div>
+      <button class="btn btn-sm" data-action="copiar-compras">📋 Copiar lista</button>
+    </div>${orcBar}
+  </div>
+  <div class="chip-row" style="margin-bottom:16px">
+    ${prios.map(p=>`<button class="chip chip-sm ${prioCompras===p[0]?"on":""}" data-action="filtro-prio" data-p="${p[0]}">${p[1]}</button>`).join("")}
+  </div>` +
+  (list.length ? `<div class="grid" style="gap:9px">${list.map(f=>`
+    <div class="item">
+      <button class="item-emj" data-action="detalhe" data-id="${f.id}">${f.emoji}</button>
+      <div class="item-body">
+        <div class="item-name">${esc(f.nome)} ${tagPrio(f.prio)}
+          ${state.presentes[f.id] ? `<span class="tag tag-info">🎁 ${esc(state.presentes[f.id])}</span>` : ""}</div>
+        <div class="item-meta">
+          <span>${CAT_EMJ[f.cat]} ${esc(f.cat)}</span>
+          <span>faltam <strong>${f.falta}</strong> ${esc(unLbl(f.un, f.falta))}</span>
+          <button class="tag" data-action="editar-preco" data-id="${f.id}">${brl(precoDe(f.id))} cada ✏️</button>
+          <span class="money" style="color:var(--accent-d)">${brl(f.custo)}</span>
+        </div>
+      </div>
+      <div class="row-tight">
+        <button class="btn btn-sm" data-action="toggle-fav" data-id="${f.id}" title="Lista de desejos">${isFav(f.id)?"⭐":"☆"}</button>
+        <button class="btn btn-sm btn-primary" data-action="comprei" data-id="${f.id}">Comprei</button>
+      </div>
+    </div>`).join("")}</div>`
+  : `<div class="empty"><span class="empty-emj">🎉</span><strong>Nada pendente por aqui</strong>
+      <p>Pelo perfil escolhido, esse filtro está completo. Experimente subir para o perfil “Caprichado” se quiser ir além.</p></div>`);
+}
+
+/* ---------- Chá de bebê ---------- */
+function renderCha(){
+  const grupos = sugestoesCha();
+  const reservados = Object.keys(state.presentes).filter(id=>ITEM_MAP[id]);
+  return head("🎉","Chá de Bebê","Sugestões de presente montadas a partir do que realmente falta, separadas por faixa de preço.") +
+  `<div class="card card-pad-sm" style="margin-bottom:16px">
+    <div class="row">
+      <div style="flex:1;min-width:180px"><strong>${grupos.reduce((s,g)=>s+g.itens.length,0)} sugestões disponíveis</strong>
+        <div class="hint">${reservados.length} ${plural(reservados.length,"item","itens")} já ${plural(reservados.length,"reservado")} por convidados</div></div>
+      <button class="btn btn-sm" data-action="copiar-cha">📋 Copiar sugestões</button>
+    </div>
+  </div>` +
+  (grupos.length ? grupos.map(g=>`
+    <div class="section-title">${g.emj} ${g.label} <span class="tag">${g.itens.length}</span></div>
+    <div class="grid g-auto" style="gap:9px">${g.itens.map(i=>`
+      <div class="item">
+        <div class="item-emj">${i.emoji}</div>
+        <div class="item-body">
+          <div class="item-name">${esc(i.nome)}</div>
+          <div class="item-meta"><span>${i.falta} ${esc(unLbl(i.un, i.falta))}</span><span class="money">${brl(precoDe(i.id))}</span></div>
+        </div>
+        <button class="btn btn-sm" data-action="reservar" data-id="${i.id}">🎁 Reservar</button>
+      </div>`).join("")}</div>`).join("")
+  : `<div class="empty"><span class="empty-emj">🎈</span><strong>Sem sugestões no momento</strong>
+      <p>Ou o enxoval já está completo, ou todos os itens que faltam já foram reservados por alguém.</p></div>`) +
+  (reservados.length ? `<div class="section-title">🎁 Já reservados</div>
+    <div class="grid g-auto" style="gap:9px">${reservados.map(id=>`
+      <div class="item done">
+        <div class="item-emj">${ITEM_MAP[id].emoji}</div>
+        <div class="item-body"><div class="item-name">${esc(ITEM_MAP[id].nome)}</div>
+          <div class="item-meta">🎁 ${esc(state.presentes[id])}</div></div>
+        <button class="btn btn-sm" data-action="liberar" data-id="${id}">Liberar</button>
+      </div>`).join("")}</div>` : "");
+}
+
+/* ---------- Cronograma ---------- */
+function renderCronograma(){
+  const s = semanas();
+  const fase = faseAtual();
+  return head("📅","Cronograma","Uma ordem que funciona: decisões grandes primeiro, mala por último.") +
+  (s ? `<div class="card card-pad-sm" style="margin-bottom:18px">
+      <strong>${s.nasceu ? `Seu bebê nasceu há ${Math.abs(s.dias)} ${plural(Math.abs(s.dias),"dia")}` : `${s.semana}ª semana de gestação`}</strong>
+      <div class="hint">${s.nasceu ? "Use a lista para repor o que for acabando." : `Faltam ${s.dias} ${plural(s.dias,"dia")} para a data prevista (${dataBR(state.dpp)}).`}</div>
+    </div>`
+   : `<div class="card card-pad-sm" style="margin-bottom:18px">
+      <div class="row"><div style="flex:1;min-width:180px"><strong>Sem data prevista informada</strong>
+        <div class="hint">Informe a data para o app marcar em que fase você está.</div></div>
+        <button class="btn btn-sm btn-primary" data-action="nav" data-tab="perfil">Informar agora</button></div>
+    </div>`) +
+  `<div class="tl">${FASES.map(f=>{
+    const ids = itensAtivos().filter(id=>f.cats.includes(ITEM_MAP[id].cat));
+    const pf = progresso(ids);
+    const atual = fase && fase.id === f.id;
+    const passada = fase && FASES.indexOf(f) < FASES.indexOf(fase);
+    return `<div class="tl-item ${atual?"now":""} ${passada?"past":""}">
+      <div class="tl-dot">${passada ? "✓" : ""}</div>
+      <h4>${f.emj} ${esc(f.label)} ${atual ? '<span class="tag tag-miss">você está aqui</span>' : ""}
+        <span class="tag ${pf.pct===100?"tag-ok":""}">${pf.pct}%</span></h4>
+      <p>${esc(f.desc)}</p>
+      <div style="margin:10px 0 12px;max-width:420px">${bar(pf.pct, pf.pct===100?"sage":"")}</div>
+      <div class="chip-row" style="margin-bottom:10px">${f.cats.map(c=>
+        `<button class="chip chip-sm" data-action="ir-cat" data-cat="${esc(c)}">${CAT_EMJ[c]} ${esc(c)} · ${progressoCat(c).pct}%</button>`).join("")}</div>
+      <ul class="grid" style="gap:6px">${f.acoes.map(a=>
+        `<li class="row" style="gap:8px;align-items:flex-start"><span>•</span><span class="hint" style="font-size:13.4px">${esc(a)}</span></li>`).join("")}</ul>
+    </div>`;
+  }).join("")}</div>`;
+}
+
+/* ---------- Favoritos ---------- */
+function renderFavoritos(){
+  const ids = state.favoritos.filter(id=>ITEM_MAP[id]);
+  const custo = ids.reduce((s,id)=>s + custoFalta(id), 0);
+  return head("⭐","Lista de desejos","Itens que você marcou como estrela em qualquer tela do app.") +
+  (ids.length ? `<div class="card card-pad-sm" style="margin-bottom:16px">
+      <strong>${ids.length} ${plural(ids.length,"item","itens")} · ${brl(custo)} para completar</strong>
+      <div class="hint">Toque na estrela de novo para tirar da lista.</div></div>
+    <div class="grid" style="gap:9px">${ids.map(id=>`
+      <div class="item ${falta(id)===0?"done":""}">
+        <button class="item-emj" data-action="detalhe" data-id="${id}">${ITEM_MAP[id].emoji}</button>
+        <div class="item-body">
+          <div class="item-name">${esc(ITEM_MAP[id].nome)} ${tagPrio(ITEM_MAP[id].prio)}</div>
+          <div class="item-meta"><span>${have(id)} de ${recQtd(id)}</span>
+            ${falta(id) ? `<span class="money" style="color:var(--accent-d)">${brl(custoFalta(id))}</span>` : '<span style="color:var(--sage);font-weight:700">completo</span>'}</div>
+        </div>
+        <button class="btn btn-sm" data-action="toggle-fav" data-id="${id}">⭐ Remover</button>
+      </div>`).join("")}</div>`
+  : `<div class="empty"><span class="empty-emj">⭐</span><strong>Nenhum desejo marcado</strong>
+      <p>Na Lista de Compras, toque na estrela dos itens que você quer guardar para depois.</p></div>`);
+}
+
+/* ---------- Histórico ---------- */
+function renderHistorico(){
+  const h = state.historico.slice().sort((a,b)=> b.data.localeCompare(a.data) || b.ts - a.ts);
+  const total = gastoTotal();
+  const porCat = {};
+  h.forEach(r=>{ const it = ITEM_MAP[r.id]; if(it) porCat[it.cat] = (porCat[it.cat]||0) + (Number(r.valor)||0); });
+  const cats = Object.entries(porCat).sort((a,b)=>b[1]-a[1]);
+  return head("📜","Histórico","Cada compra registrada na lista entra aqui, com data e valor.") +
+  (h.length ? `<div class="stat-row" style="margin-bottom:18px">
+      <div class="stat"><div class="stat-lbl">Total gasto</div><div class="stat-val money">${brl(total)}</div>
+        <div class="stat-sub">${h.length} ${plural(h.length,"compra")}</div></div>
+      <div class="stat"><div class="stat-lbl">Ticket médio</div><div class="stat-val money">${brl(total/h.length)}</div>
+        <div class="stat-sub">por registro</div></div>
+      ${state.orcamento ? `<div class="stat"><div class="stat-lbl">Do orçamento</div>
+        <div class="stat-val">${Math.round(total/state.orcamento*100)}%</div>
+        <div class="stat-sub">de ${brl(state.orcamento)}</div></div>` : ""}
+    </div>
+    ${cats.length ? `<div class="section-title">💸 Gasto por categoria</div>
+    <div class="grid g-auto" style="margin-bottom:20px">${cats.map(([c,v])=>`
+      <div class="card card-pad-sm">
+        <div class="row" style="gap:9px;margin-bottom:8px"><div class="item-emj">${CAT_EMJ[c]}</div>
+          <div style="flex:1;min-width:0"><strong style="font-size:14px">${esc(c)}</strong>
+            <div class="hint money">${brl(v)}</div></div></div>
+        ${bar(Math.round(v/cats[0][1]*100))}
+      </div>`).join("")}</div>` : ""}
+    <div class="section-title">🧾 Registros</div>
+    <div class="grid" style="gap:8px">${h.map((r,i)=>{
+      const it = ITEM_MAP[r.id];
+      return `<div class="item">
+        <div class="item-emj">${it ? it.emoji : "📦"}</div>
+        <div class="item-body">
+          <div class="item-name">${esc(it ? it.nome : r.id)}</div>
+          <div class="item-meta"><span>${dataBR(r.data)}</span><span>${r.qtd} ${plural(r.qtd,"unidade")}</span>
+            <span class="money">${brl(r.valor)}</span></div>
+        </div>
+        <button class="btn btn-sm btn-ghost" data-action="apagar-hist" data-i="${i}" title="Apagar registro">✕</button>
+      </div>`;
+    }).join("")}</div>`
+  : `<div class="empty"><span class="empty-emj">📜</span><strong>Nenhuma compra registrada</strong>
+      <p>Quando você tocar em “Comprei” na Lista de Compras, o item aparece aqui com data e valor.</p></div>`);
+}
+
+/* ---------- Dispatcher ---------- */
+const VIEWS = {inicio:renderInicio, itens:renderItens, perfil:renderPerfil, kits:renderKits,
+  mala:renderMala, compras:renderCompras, cha:renderCha, cronograma:renderCronograma,
+  favoritos:renderFavoritos, historico:renderHistorico};
+
+function renderNav(){
+  const badges = {
+    itens: faltantes().length || "",
+    compras: faltantes().length || "",
+    mala: (()=>{ const t = gerarMala().flatMap(s=>s.itens); const c = t.filter(i=>state.malaCheck[i.id]).length;
+                 return t.length ? `${c}/${t.length}` : ""; })(),
+    kits: getKits({mode:"usaveis"}).length || "",
+    favoritos: state.favoritos.length || "",
+    historico: state.historico.length || "",
+  };
+  document.getElementById("nav").innerHTML = TABS.map(t=>`
+    <button class="nav-item ${t[0]===currentTab?"active":""}" data-action="nav" data-tab="${t[0]}">
+      <span class="nav-emj">${t[2]}</span><span class="nav-lbl">${t[1]}</span>
+      ${badges[t[0]] ? `<span class="nav-badge">${badges[t[0]]}</span>` : ""}
+    </button>`).join("");
+  document.getElementById("topFalta").textContent = faltantes().length;
+}
+
+function render(){
+  renderNav();
+  document.getElementById("content").innerHTML = `<div class="view">${(VIEWS[currentTab] || renderInicio)()}</div>`;
+  if(refocarBusca){
+    const el = document.getElementById("buscaItens");
+    if(el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+    refocarBusca = false;
+  }
+}
+function patchItens(){                     /* atualiza a lista sem recriar a busca */
+  const list = document.getElementById("itensList");
+  if(!list){ render(); return; }
+  list.innerHTML = listaItens();
+  document.getElementById("itensHead").innerHTML = headerProgresso(progresso());
+  renderNav();
+}
+function navTo(tab){
+  currentTab = tab;
+  const t = TABS.find(x=>x[0]===tab) || TABS[0];
+  document.getElementById("topTitle").textContent = t[1];
+  document.getElementById("topSub").textContent  = t[3];
+  document.getElementById("sidebar").classList.remove("open");
+  document.getElementById("scrim").classList.remove("show");
+  render();
+  window.scrollTo(0,0);
+}
+function toast(msg, emj="✓"){
+  const el = document.createElement("div");
+  el.className = "toast"; el.innerHTML = `<span>${emj}</span><span>${esc(msg)}</span>`;
+  document.getElementById("toastWrap").appendChild(el);
+  setTimeout(()=>{ el.classList.add("out"); setTimeout(()=>el.remove(), 320); }, 2200);
+}
+function openModal(html){
+  document.getElementById("modal").innerHTML = html;
+  document.getElementById("modalBg").classList.add("show");
+  document.body.style.overflow = "hidden";
+}
+function closeModal(){
+  document.getElementById("modalBg").classList.remove("show");
+  document.body.style.overflow = "";
+}
+
+/* ==================================================================
+   CAMADA 5 — ACTIONS (um mapa + um listener por tipo de evento)
+   ================================================================== */
+
+/* --- textos exportáveis --- */
+function textoCompras(){
+  const list = faltantes(prioCompras ? {prio:prioCompras} : {});
+  const linhas = list.map(f=>`[ ] ${f.nome} — ${f.falta} ${unLbl(f.un, f.falta)} (~${brl(f.custo)})`);
+  return `LISTA DE COMPRAS DO ENXOVAL${state.nomeBebe ? " — " + state.nomeBebe : ""}\n`
+    + `${list.length} itens · total estimado ${brl(list.reduce((s,f)=>s+f.custo,0))}\n\n`
+    + (linhas.join("\n") || "Nada pendente.");
+}
+function textoCha(){
+  const g = sugestoesCha();
+  return `SUGESTÕES DE PRESENTE${state.nomeBebe ? " — " + state.nomeBebe : ""}\n\n`
+    + g.map(f=>`${f.label}\n` + f.itens.map(i=>`  • ${i.nome} (${i.falta} ${unLbl(i.un, i.falta)})`).join("\n")).join("\n\n");
+}
+function textoMala(){
+  return `MALA DA MATERNIDADE${state.nomeBebe ? " — " + state.nomeBebe : ""}\n\n`
+    + gerarMala().map(s=>`${s.titulo.toUpperCase()}\n`
+      + s.itens.map(i=>`  [${state.malaCheck[i.id]?"x":" "}] ${i.nome}${i.tem===0?" (ainda não tem em casa)":""}`).join("\n")).join("\n\n");
+}
+function copiarTexto(txt, titulo){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(()=>toast("Copiado para a área de transferência","📋")).catch(()=>modalTexto(txt,titulo));
+  } else modalTexto(txt, titulo);
+}
+function modalTexto(txt, titulo){
+  openModal(`<h3>📋 ${esc(titulo)}</h3>
+    <p class="modal-sub">Selecione o texto e copie.</p>
+    <div class="modal-body"><textarea id="txtExport" readonly>${esc(txt)}</textarea></div>
+    <div class="modal-foot"><button class="btn" data-action="fechar-modal">Fechar</button></div>`);
+  const t = document.getElementById("txtExport");
+  if(t){ t.focus(); t.select(); }
+}
+
+const ACTIONS = {
+  "noop":()=>{},
+  "nav":(d)=>navTo(d.tab),
+  "open-menu":()=>{ document.getElementById("sidebar").classList.add("open");
+                    document.getElementById("scrim").classList.add("show"); },
+  "close-menu":()=>{ document.getElementById("sidebar").classList.remove("open");
+                     document.getElementById("scrim").classList.remove("show"); },
+  "fechar-modal":()=>closeModal(),
+  "toggle-theme":()=>{ state.theme = state.theme === "dark" ? "light" : "dark"; applyTheme(); save(); },
+
+  /* --- quantidades --- */
+  "qtd-inc":(d)=>{ state.qtd[d.id] = have(d.id) + 1; save(); afterQtd(d.id); },
+  "qtd-dec":(d)=>{ state.qtd[d.id] = Math.max(0, have(d.id) - 1); save(); afterQtd(d.id); },
+
+  /* --- filtros --- */
+  "filtro-cat":(d)=>{ catAtiva = d.cat; patchItens(); },
+  "filtro-itens":(d)=>{ filtroItens = d.f; patchItens(); },
+  "filtro-kit":(d)=>{ kitTipo = d.t; render(); },
+  "filtro-prio":(d)=>{ prioCompras = Number(d.p); render(); },
+  "ir-cat":(d)=>{ catAtiva = d.cat; filtroItens = "todos"; busca = ""; navTo("itens"); },
+
+  /* --- item --- */
+  "detalhe":(d)=>{
+    const it = ITEM_MAP[d.id]; if(!it) return;
+    openModal(`<h3>${it.emoji} ${esc(it.nome)}</h3>
+      <p class="modal-sub">${CAT_EMJ[it.cat]} ${esc(it.cat)} · ${PRIOS[it.prio][0]} · ${brl(precoDe(d.id))} por ${esc(unLbl(it.un, 1))}</p>
+      <div class="modal-body">
+        <div class="card card-pad-sm"><strong>💡 Dica</strong><p class="hint" style="margin-top:5px;font-size:13.5px">${esc(it.dica)}</p></div>
+        <div class="stat-row">
+          <div class="stat"><div class="stat-lbl">Você tem</div><div class="stat-val">${have(d.id)}</div></div>
+          <div class="stat"><div class="stat-lbl">Recomendado</div><div class="stat-val">${recQtd(d.id)}</div>
+            <div class="stat-sub">${esc(PERFIS.find(p=>p[0]===state.perfil)[1].toLowerCase())}${it.est!=="todas"?` · ${it.est==="frio"?"peça de frio":"peça de calor"}`:""}</div></div>
+          <div class="stat"><div class="stat-lbl">Falta</div><div class="stat-val" style="color:var(--accent-d)">${falta(d.id)}</div>
+            <div class="stat-sub">${brl(custoFalta(d.id))}</div></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-sm" data-action="ocultar" data-id="${d.id}">🚫 Não vou usar</button>
+        <button class="btn btn-sm" data-action="editar-preco" data-id="${d.id}">✏️ Preço</button>
+        <button class="btn btn-sm" data-action="toggle-fav" data-id="${d.id}">${isFav(d.id)?"⭐ Tirar do desejo":"☆ Quero"}</button>
+        <button class="btn btn-sm btn-primary" data-action="fechar-modal">Fechar</button>
+      </div>`);
+  },
+  "toggle-fav":(d)=>{
+    const i = state.favoritos.indexOf(d.id);
+    if(i >= 0){ state.favoritos.splice(i,1); toast("Saiu da lista de desejos","☆"); }
+    else { state.favoritos.push(d.id); toast("Na lista de desejos","⭐"); }
+    save(); closeModal(); render();
+  },
+  "ocultar":(d)=>{
+    if(!state.ocultos.includes(d.id)) state.ocultos.push(d.id);
+    save(); closeModal(); render();
+    toast(`${ITEM_MAP[d.id].nome} saiu do enxoval`,"🚫");
+  },
+  "mostrar":(d)=>{
+    state.ocultos = state.ocultos.filter(x=>x !== d.id);
+    save(); closeModal(); render(); toast("Item de volta ao enxoval","↩️");
+  },
+  "ver-ocultos":()=>{
+    if(!state.ocultos.length){ toast("Nenhum item oculto","🚫"); return; }
+    openModal(`<h3>🚫 Itens ocultos</h3>
+      <p class="modal-sub">Não entram no progresso nem na lista de compras.</p>
+      <div class="modal-body">${state.ocultos.map(id=>`
+        <div class="item"><div class="item-emj">${ITEM_MAP[id].emoji}</div>
+          <div class="item-body"><div class="item-name">${esc(ITEM_MAP[id].nome)}</div>
+            <div class="item-meta">${CAT_EMJ[ITEM_MAP[id].cat]} ${esc(ITEM_MAP[id].cat)}</div></div>
+          <button class="btn btn-sm" data-action="mostrar" data-id="${id}">Restaurar</button></div>`).join("")}</div>
+      <div class="modal-foot"><button class="btn btn-primary" data-action="fechar-modal">Fechar</button></div>`);
+  },
+  "editar-preco":(d)=>{
+    const it = ITEM_MAP[d.id];
+    openModal(`<h3>✏️ Preço de ${esc(it.nome)}</h3>
+      <p class="modal-sub">Vale para o cálculo do que falta e para o chá de bebê.</p>
+      <div class="modal-body"><div class="field"><label>Preço por ${esc(unLbl(it.un, 1))} (R$)</label>
+        <input id="inPreco" inputmode="decimal" value="${precoDe(d.id)}"></div>
+        <span class="hint">Referência do app: ${brl(it.preco)}.</span></div>
+      <div class="modal-foot">
+        <button class="btn" data-action="fechar-modal">Cancelar</button>
+        <button class="btn btn-primary" data-action="salvar-preco" data-id="${d.id}">Salvar</button>
+      </div>`);
+  },
+  "salvar-preco":(d)=>{
+    const v = parseFloat(String(document.getElementById("inPreco").value).replace(",","."));
+    if(!isNaN(v) && v >= 0) state.precos[d.id] = v;
+    save(); closeModal(); render(); toast("Preço atualizado","💰");
+  },
+
+  /* --- perfil --- */
+  "set-perfil":(d)=>{ state.perfil = d.p; save(); render(); toast(`Perfil ${PERFIS.find(p=>p[0]===d.p)[1].toLowerCase()}`,"🌸"); },
+  "set-estacao":(d)=>{ state.estacao = d.e; save(); render(); },
+  "set-bebes":(d)=>{ state.bebes = Number(d.n); save(); render(); },
+
+  /* --- kits --- */
+  "kit-detalhe":(d)=>{
+    const k = KITS.find(x=>x.id === d.id); if(!k) return;
+    const m = match(k);
+    openModal(`<h3>${k.emj} ${esc(k.nome)}</h3>
+      <p class="modal-sub">${esc(k.desc)}</p>
+      <div class="modal-body">
+        <div>${bar(Math.round(m.score*100), m.completo?"sage":"")}</div>
+        <div class="section-title" style="margin-top:6px">Itens do kit</div>
+        <div class="pill-list">${k.req.map(id=>{
+          const e = estadoItem(id);
+          return `<span class="tag ${e==="ok"?"tag-ok":e==="part"?"tag-warn":"tag-miss"}">${ITEM_MAP[id].emoji} ${esc(ITEM_MAP[id].nome)}${e==="ok"?" ✓":` · faltam ${falta(id)}`}</span>`;
+        }).join("")}</div>
+        ${k.opt.length ? `<div class="section-title">Extras</div>
+          <div class="pill-list">${k.opt.map(id=>`<span class="tag ${have(id)>0?"tag-ok":""}">${ITEM_MAP[id].emoji} ${esc(ITEM_MAP[id].nome)}${have(id)>0?" ✓":""}</span>`).join("")}</div>` : ""}
+        <div class="section-title">Como usar</div>
+        <ul class="grid" style="gap:7px">${k.passos.map(p=>`<li class="row" style="gap:8px;align-items:flex-start"><span>•</span><span style="font-size:13.6px">${esc(p)}</span></li>`).join("")}</ul>
+      </div>
+      <div class="modal-foot"><button class="btn btn-primary" data-action="fechar-modal">Fechar</button></div>`);
+  },
+  "kit-falta":(d)=>{
+    const k = KITS.find(x=>x.id === d.id); if(!k) return;
+    const m = match(k);
+    if(!m.faltando.length){ toast("Esse kit já está pronto","✅"); return; }
+    catAtiva = "todas"; filtroItens = "falta"; busca = "";
+    closeModal(); navTo("itens");
+    toast(`${m.faltando.length} ${plural(m.faltando.length,"item","itens")} ${plural(m.faltando.length,"falta","faltam")} para o ${k.nome.toLowerCase()}`, k.emj);
+  },
+
+  /* --- mala --- */
+  "mala-toggle":(d)=>{
+    if(state.malaCheck[d.id]) delete state.malaCheck[d.id]; else state.malaCheck[d.id] = true;
+    save(); render();
+  },
+  "mala-limpar":()=>{ state.malaCheck = {}; save(); render(); toast("Mala desmarcada","↺"); },
+  "mala-copiar":()=>copiarTexto(textoMala(), "Mala da maternidade"),
+
+  /* --- compras --- */
+  "comprei":(d)=>{
+    const it = ITEM_MAP[d.id], f = falta(d.id);
+    openModal(`<h3>🛍️ Comprei ${esc(it.nome)}</h3>
+      <p class="modal-sub">A quantidade entra no seu enxoval e o valor vai para o histórico.</p>
+      <div class="modal-body">
+        <div class="grid g-2">
+          <div class="field"><label>Quantidade (${esc(unLbl(it.un, 2))})</label><input id="inQtd" inputmode="decimal" value="${f || 1}"></div>
+          <div class="field"><label>Valor total pago (R$)</label><input id="inValor" inputmode="decimal" value="${(f || 1) * precoDe(d.id)}"></div>
+        </div>
+        <span class="hint">Você tem ${have(d.id)} de ${recQtd(d.id)} ${esc(unLbl(it.un, recQtd(d.id)))}.</span>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" data-action="fechar-modal">Cancelar</button>
+        <button class="btn btn-primary" data-action="confirmar-compra" data-id="${d.id}">Registrar</button>
+      </div>`);
+  },
+  "confirmar-compra":(d)=>{
+    const num = el => parseFloat(String(document.getElementById(el).value).replace(",",".")) || 0;
+    const qtd = Math.max(1, Math.round(num("inQtd"))), valor = Math.max(0, num("inValor"));
+    state.qtd[d.id] = have(d.id) + qtd;
+    state.historico.push({data:todayStr(), ts:Date.now(), id:d.id, qtd, valor});
+    delete state.presentes[d.id];
+    save(); closeModal(); render();
+    toast(`${qtd} ${plural(qtd,"unidade")} de ${ITEM_MAP[d.id].nome.toLowerCase()} · ${brl(valor)}`,"🛍️");
+  },
+  "copiar-compras":()=>copiarTexto(textoCompras(), "Lista de compras"),
+
+  /* --- chá de bebê --- */
+  "copiar-cha":()=>copiarTexto(textoCha(), "Sugestões de presente"),
+  "reservar":(d)=>{
+    const it = ITEM_MAP[d.id];
+    openModal(`<h3>🎁 Reservar ${esc(it.nome)}</h3>
+      <p class="modal-sub">Marque quem ficou de presentear, para ninguém repetir.</p>
+      <div class="modal-body"><div class="field"><label>Nome do convidado</label>
+        <input id="inPresente" placeholder="Ex.: Tia Lu" autocomplete="off"></div></div>
+      <div class="modal-foot">
+        <button class="btn" data-action="fechar-modal">Cancelar</button>
+        <button class="btn btn-primary" data-action="salvar-presente" data-id="${d.id}">Reservar</button>
+      </div>`);
+    const el = document.getElementById("inPresente"); if(el) el.focus();
+  },
+  "salvar-presente":(d)=>{
+    const v = document.getElementById("inPresente").value.trim();
+    state.presentes[d.id] = v || "reservado";
+    save(); closeModal(); render(); toast("Presente reservado","🎁");
+  },
+  "liberar":(d)=>{ delete state.presentes[d.id]; save(); render(); toast("Reserva liberada","↩️"); },
+
+  /* --- histórico e dados --- */
+  "apagar-hist":(d)=>{
+    const h = state.historico.slice().sort((a,b)=> b.data.localeCompare(a.data) || b.ts - a.ts);
+    const alvo = h[Number(d.i)];
+    if(!alvo) return;
+    state.historico = state.historico.filter(x=>x !== alvo);
+    save(); render(); toast("Registro apagado","🗑️");
+  },
+  "exportar":()=>modalTexto(JSON.stringify(state, null, 2), "Backup dos seus dados"),
+  "zerar":()=>{
+    openModal(`<h3>🗑️ Recomeçar do zero</h3>
+      <p class="modal-sub">Apaga quantidades, favoritos, mala, reservas e histórico deste navegador. Não dá para desfazer.</p>
+      <div class="modal-foot">
+        <button class="btn" data-action="fechar-modal">Cancelar</button>
+        <button class="btn btn-primary" data-action="zerar-confirma">Apagar tudo</button>
+      </div>`);
+  },
+  "zerar-confirma":()=>{
+    const tema = state.theme;
+    try{ localStorage.removeItem(LS_KEY); }catch(e){}
+    state = {qtd:{},precos:{},ocultos:[],favoritos:[],presentes:{},malaCheck:{},historico:[],
+             perfil:"completo",estacao:"todas",bebes:1,nomeBebe:"",dpp:"",orcamento:0,theme:tema};
+    save(); closeModal(); navTo("inicio"); toast("Tudo apagado","🗑️");
+  },
+  "sobre":()=>{
+    openModal(`<h3>🧸 Como funciona</h3>
+      <p class="modal-sub">Enxoval — planejador do enxoval do bebê</p>
+      <div class="modal-body">
+        <div class="card card-pad-sm"><strong>1. Perfil</strong><p class="hint" style="font-size:13.4px;margin-top:4px">
+          Tamanho do enxoval, estação e número de bebês definem a quantidade recomendada de cada item.</p></div>
+        <div class="card card-pad-sm"><strong>2. Enxoval</strong><p class="hint" style="font-size:13.4px;margin-top:4px">
+          Você informa o que já tem. O app calcula o que falta, por item e por categoria.</p></div>
+        <div class="card card-pad-sm"><strong>3. Kits, mala e compras</strong><p class="hint" style="font-size:13.4px;margin-top:4px">
+          Tudo é derivado desses números: rotinas montadas, checklist da mala, lista de compras e sugestões de presente.</p></div>
+        <p class="hint">Os dados ficam só neste navegador (localStorage). Nada é enviado para lugar nenhum e o app funciona offline.
+        Os preços são referências médias — ajuste no ✏️ de cada item.</p>
+      </div>
+      <div class="modal-foot"><button class="btn btn-primary" data-action="fechar-modal">Entendi</button></div>`);
+  },
+};
+
+/* Depois de mexer na quantidade: patch na aba Enxoval, render nas demais */
+function afterQtd(id){
+  if(currentTab === "itens") patchItens();
+  else render();
+}
+
+/* --- um listener por tipo de evento, sempre no document --- */
+document.addEventListener("click",(e)=>{
+  const el = e.target.closest("[data-action]");
+  if(!el) return;
+  const fn = ACTIONS[el.dataset.action];
+  if(fn){ e.preventDefault(); fn(el.dataset); }
+});
+document.addEventListener("input",(e)=>{
+  const t = e.target;
+  if(t.classList.contains("qty-input")){
+    const v = Math.max(0, Math.round(parseFloat(String(t.value).replace(",",".")) || 0));
+    state.qtd[t.dataset.id] = v; save();
+    const hd = document.getElementById("itensHead");
+    if(hd) hd.innerHTML = headerProgresso(progresso());
+    renderNav();
+    return;
+  }
+  if(t.id === "buscaItens"){ busca = t.value; patchItens(); return; }
+  if(t.id === "inNome"){ state.nomeBebe = t.value.slice(0,40); save(); return; }
+  if(t.id === "inOrc"){ state.orcamento = Math.max(0, parseFloat(String(t.value).replace(",",".")) || 0); save(); return; }
+});
+document.addEventListener("change",(e)=>{
+  const t = e.target;
+  if(t.id === "inDpp"){ state.dpp = t.value; save(); render(); return; }
+  if(t.classList.contains("qty-input")){ patchItens(); return; }
+});
+document.getElementById("modalBg").addEventListener("click",(e)=>{ if(e.target.id === "modalBg") closeModal(); });
+document.addEventListener("keydown",(e)=>{
+  if(e.key === "Escape"){ closeModal(); ACTIONS["close-menu"](); }
+  if(e.key === "Enter" && document.getElementById("modalBg").classList.contains("show")){
+    const primary = document.querySelector("#modal .btn-primary[data-action]");
+    if(primary && e.target.tagName === "INPUT"){ e.preventDefault(); primary.click(); }
+  }
+});
+
+/* ==================================================================
+   CAMADA 6 — INIT
+   ================================================================== */
+function applyTheme(){
+  document.documentElement.setAttribute("data-theme", state.theme === "dark" ? "dark" : "light");
+  const b = document.getElementById("themeBtn");
+  if(b) b.textContent = state.theme === "dark" ? "☀️ Modo claro" : "🌙 Modo escuro";
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if(meta) meta.setAttribute("content", state.theme === "dark" ? "#191315" : "#d97a8e");
+}
+function init(){
+  load();
+  applyTheme();
+  renderNav();
+  navTo("inicio");
+
+  /* dev check: nenhuma referência cruzada pode apontar para um id inexistente */
+  const bad = [];
+  KITS.forEach(k=>[...(k.req||[]), ...(k.opt||[])].forEach(id=>{ if(!ITEM_MAP[id]) bad.push(k.id + " → " + id); }));
+  FASES.forEach(f=>f.cats.forEach(c=>{ if(!CAT_EMJ[c]) bad.push(f.id + " → " + c); }));
+  ITENS.forEach(i=>{ if(!CAT_EMJ[i[3]]) bad.push(i[0] + " → categoria " + i[3]); });
+  if(bad.length) console.warn("Referências inexistentes:", bad);
+}
+init();
+
+if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+  window.addEventListener("load", ()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
+</script>
+</body>
+</html>
