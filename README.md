@@ -63,17 +63,17 @@ fundo papel `#f3f2f2`, texto `#201e1d`, ciano `#0088b0` para o que é interativo
 `#d6006c` como segunda cor de destaque, raios de 1–4 px e hierarquia feita por escala
 tipográfica e espaço em branco — sem caixas nem linhas divisórias.
 
-O app não usa CDN: a fonte **Source Serif 4** (OFL) está embutida como `woff2` em base64 e
-os ícones **Phosphor duotone** (MIT) como sprite SVG no próprio arquivo. As ilustrações do
-ursinho vivem em `assets/`, redimensionadas para o tamanho em que aparecem.
+O app não usa CDN nem arquivo externo nenhum: a fonte **Source Serif 4** (OFL) está embutida
+como `woff2` em base64, os ícones **Phosphor duotone** (MIT) como sprite SVG e as ilustrações
+do ursinho como WebP em base64 — tudo dentro do `index.html`. Você pode mandar só esse arquivo
+por WhatsApp ou e-mail que ele abre inteiro, com as imagens.
 
 ---
 
 ## Arquivos
 
 ```
-index.html              ← o app inteiro (CSS + HTML + JS, fonte e ícones embutidos)
-assets/urso-*.png       ← ilustrações do design
+index.html              ← o app inteiro (CSS + HTML + JS, fonte, ícones e ilustrações embutidos)
 manifest.webmanifest    ← nome, ícones, cores, display standalone
 sw.js                   ← service worker (cache offline)
 icon-*.png              ← ícones do PWA, comuns e maskable
@@ -81,7 +81,7 @@ ARQUITETURA.md          ← o padrão de construção seguido aqui
 ```
 
 > Ao alterar qualquer arquivo, incremente a versão do cache em `sw.js`
-> (`const CACHE = "nosso-bebe-v3"`), senão quem já usa o app fica preso na versão antiga.
+> (`const CACHE = "nosso-bebe-v4"`), senão quem já usa o app fica preso na versão antiga.
 
 ## Nota
 
