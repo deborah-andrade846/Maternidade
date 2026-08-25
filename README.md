@@ -19,6 +19,8 @@ Servindo por `http`/`https` (por exemplo `npx http-server`), instala como PWA: v
 tela inicial e continua funcionando sem internet.
 
 No celular o app ocupa a tela inteira; no desktop aparece na moldura de 390×844 do design.
+Não há cabeçalho fixo: cada tela abre com o próprio título, e o enxoval começa zerado — o que
+está “em casa” é só o que você marcar.
 
 ---
 
@@ -95,7 +97,7 @@ ARQUITETURA.md          ← o padrão de construção seguido aqui
 ```
 
 > Ao alterar qualquer arquivo, incremente a versão do cache em `sw.js`
-> (`const CACHE = "nosso-bebe-v5"`), senão quem já usa o app fica preso na versão antiga.
+> (`const CACHE = "nosso-bebe-v7"`), senão quem já usa o app fica preso na versão antiga.
 
 ## Nota
 
