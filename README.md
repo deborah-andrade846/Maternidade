@@ -79,8 +79,16 @@ categorias de cada momento e o que fazer em cada uma.
 | **Chá de bebê** | Sugestões do que falta, por faixa de preço, reserváveis no nome do convidado |
 | **Lista de desejos** | O que você marcou com ♥, com o custo para completar |
 | **Histórico** | Cada compra registrada, com data, valor e gasto por categoria |
-| **Nomes** | Favoritos de vocês dois, com significado |
-| **Plano de parto** | Via de parto, alívio da dor, acompanhante, pós-nascimento e ambiente |
+| **Nomes** | Favoritos de vocês dois — nome, significado e anotação, tudo editável |
+| **Plano de parto** | Temas, opções e anotações que vocês mesmos escrevem |
+
+### Nomes e plano de parto são seus
+As duas listas começam com uma sugestão, mas nada ali é fixo. Em **Nomes**, o coração
+marca o favorito e o toque no nome abre o formulário: nome, significado e uma anotação
+livre (quem sugeriu, como combina com o sobrenome), com a opção de apagar. Em **Plano de
+parto**, cada tema tem um *editar* que muda o título, acrescenta e apaga opções uma a uma,
+escreve a anotação para levar à consulta ou apaga o tema inteiro — e o **+ Adicionar tema**
+cria os assuntos que faltarem. Tocar de novo na opção marcada desmarca.
 
 ### O perfil muda tudo
 O perfil do enxoval define a quantidade recomendada de cada item: o tamanho escolhido, a
@@ -115,7 +123,7 @@ ARQUITETURA.md          ← o padrão de construção seguido aqui
 ```
 
 > Ao alterar qualquer arquivo, incremente a versão do cache em `sw.js`
-> (`const CACHE = "nosso-bebe-v9"`), senão quem já usa o app fica preso na versão antiga.
+> (`const CACHE = "nosso-bebe-v10"`), senão quem já usa o app fica preso na versão antiga.
 
 ## Nota
 
