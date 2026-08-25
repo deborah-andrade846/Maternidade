@@ -1,7 +1,8 @@
 # 🧸 Nosso bebê — gestação e enxoval
 
 App de **arquivo único** para acompanhar a gestação semana a semana e organizar tudo o que
-vem junto: enxoval, bolsa da maternidade, consultas, orçamento, nomes e plano de parto.
+vem junto: um enxoval de 75 itens com quantidade recomendada, kits e rotinas, mala da
+maternidade, lista de compras, chá de bebê, consultas, orçamento, nomes e plano de parto.
 Abre com dois cliques, funciona **offline**, sem cadastro e sem servidor — os dados ficam
 só no `localStorage` do próprio aparelho.
 
@@ -29,10 +30,12 @@ e o texto do desenvolvimento daquela semana. Abaixo, três atalhos vivos: itens 
 em casa, próxima consulta e quanto já foi gasto.
 
 ### 🍼 Enxoval
-Os itens agrupados por categoria (Roupinhas, Higiene, Sono, Passeio, Amamentação), cada um
-com tamanho, loja, preço e a contagem `tem/quer`. Toque para abrir o item: ali você ajusta a
-quantidade no `−` / `+`, edita todos os campos ou apaga. O botão **+ Adicionar item** cria
-itens novos em qualquer categoria.
+Catálogo de **75 itens em 8 categorias** — Roupinhas, Fraldas, Higiene & Banho, Quarto & Sono,
+Alimentação, Passeio, Saúde e Mamãe. Cada um traz quantidade recomendada, tamanho, loja, preço,
+prioridade e uma dica prática. Tem busca, filtro por categoria e por situação (falta / já tenho /
+desejos), e dá para ocultar o que não faz sentido para você. Toque no item para ajustar a
+quantidade no `−` / `+`, marcar como desejo, editar todos os campos ou apagar. O botão
+**+ Adicionar item** cria itens seus em qualquer categoria.
 
 ### 💗 Gravidez
 Semana a semana, do grão de gergelim ao morfológico. A semana atual aparece destacada em
@@ -42,17 +45,28 @@ ciano; as que já passaram, em cinza.
 Agenda de consultas, exames e vacinas. Toque no texto para editar, no círculo para marcar
 como feita.
 
-### ⋯ Mais
-- **Orçamento** — total gasto, gasto por categoria e quanto ainda falta comprar
-- **Bolsa da maternidade** — checklist separado por “Você”, “Bebê” e “Volta pra casa”, com
-  campo para acrescentar o que faltar
-- **Nomes** — lista de favoritos, com significado, marcados no coração
-- **Plano de parto** — via de parto, alívio da dor, acompanhante, pós-nascimento e ambiente
+Abaixo, o **cronograma do enxoval**: quatro fases por semana gestacional, com o progresso das
+categorias de cada momento e o que fazer em cada uma.
 
-### Sua gestação
-Toque em **sem N/40**, no topo, para informar a data prevista do parto e o orçamento
-planejado. É daí que saem a semana, a contagem regressiva, o texto da home e a barra do
-orçamento.
+### ⋯ Mais
+| | O que é |
+|---|---|
+| **Perfil do enxoval** | Tamanho (essencial / completo / caprichado), estação dos primeiros meses, quantos bebês, data prevista do parto e orçamento |
+| **Lista de compras** | Só o que falta, por prioridade, com custo por linha; “Comprei” registra a compra |
+| **Orçamento** | Valor já em casa, gasto por categoria e quanto ainda falta |
+| **Kits & rotinas** | 13 situações reais — banho, troca, sono seguro, passeio, malas — com três estados: pronto, dá para fazer, faltam N |
+| **Mala da maternidade** | Gerada dos kits de mala, destacando o que ainda não está em casa |
+| **Chá de bebê** | Sugestões do que falta, por faixa de preço, reserváveis no nome do convidado |
+| **Lista de desejos** | O que você marcou com ♥, com o custo para completar |
+| **Histórico** | Cada compra registrada, com data, valor e gasto por categoria |
+| **Nomes** | Favoritos de vocês dois, com significado |
+| **Plano de parto** | Via de parto, alívio da dor, acompanhante, pós-nascimento e ambiente |
+
+### O perfil muda tudo
+O perfil do enxoval define a quantidade recomendada de cada item: o tamanho escolhido, a
+estação (peças fora de estação entram com metade da quantidade, nunca somem) e o número de
+bebês (+80% por bebê extra nos itens de consumo). A data prevista do parto alimenta a semana,
+a contagem regressiva, o texto da home e o cronograma.
 
 ---
 
@@ -81,7 +95,7 @@ ARQUITETURA.md          ← o padrão de construção seguido aqui
 ```
 
 > Ao alterar qualquer arquivo, incremente a versão do cache em `sw.js`
-> (`const CACHE = "nosso-bebe-v4"`), senão quem já usa o app fica preso na versão antiga.
+> (`const CACHE = "nosso-bebe-v5"`), senão quem já usa o app fica preso na versão antiga.
 
 ## Nota
 
