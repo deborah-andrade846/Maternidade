@@ -6,8 +6,8 @@
 <title>Nosso bebê — gestação e enxoval</title>
 <meta name="description" content="Acompanhe a gestação semana a semana e organize o enxoval inteiro: 75 itens com quantidade recomendada, kits, mala da maternidade, lista de compras, chá de bebê, consultas e orçamento. Funciona offline, sem cadastro.">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192-v2.png">
+<link rel="apple-touch-icon" href="icon-192-v2.png">
 <meta name="theme-color" content="#f3f2f2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Nosso bebê">
@@ -1666,6 +1666,10 @@ function salvarItem(){
   if(form.id && CAT_MAP[form.id]){                     /* item do catálogo: guarda os ajustes */
     const a = ajusteDe(form.id);
     a.tem = temQtd; a.preco = dados.preco; a.tam = dados.tam; a.loja = dados.loja;
+    a.nome = dados.nome; a.cat = dados.cat; a.prio = dados.prio;
+    /* a quantidade só vira fixa se você pedir outra que não a recomendada pelo perfil */
+    delete a.meta;
+    if(dados.meta !== meta(form.id)) a.meta = dados.meta;
   } else if(form.id){                                  /* item criado por você */
     state.extras = state.extras.map(e=>e.id === form.id ? {...e, ...dados} : e);
     ajusteDe(form.id).tem = temQtd;

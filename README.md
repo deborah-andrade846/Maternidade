@@ -118,12 +118,12 @@ por WhatsApp ou e-mail que ele abre inteiro, com as imagens.
 index.html              ← o app inteiro (CSS + HTML + JS, fonte, ícones e ilustrações embutidos)
 manifest.webmanifest    ← nome, ícones, cores, display standalone
 sw.js                   ← service worker (cache offline)
-icon-*.png              ← ícones do PWA, comuns e maskable
+icon-*-v2.png           ← ícones do PWA, comuns e maskable
 ARQUITETURA.md          ← o padrão de construção seguido aqui
 ```
 
 > Ao alterar qualquer arquivo, incremente a versão do cache em `sw.js`
-> (`const CACHE = "nosso-bebe-v10"`), senão quem já usa o app fica preso na versão antiga.
+> (`const CACHE = "nosso-bebe-v11"`), senão quem já usa o app fica preso na versão antiga.
 
 ## Nota
 
