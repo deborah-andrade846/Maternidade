@@ -13,10 +13,28 @@ Implementação do design **`Enxoval App.dc.html`** (Claude Design), sobre o des
 
 ## Como usar
 
-Abra o `index.html` no navegador.
+Abra o `index.html` no navegador — ele funciona inteiro assim, inclusive offline.
 
-Servindo por `http`/`https` (por exemplo `npx http-server`), instala como PWA: vira ícone na
-tela inicial e continua funcionando sem internet.
+### Para instalar como app no celular
+
+Um arquivo aberto direto do WhatsApp (`content://…`) ou do gerenciador de arquivos
+(`file://…`) **não** pode virar app: navegadores só oferecem a instalação em **origem
+segura**, isto é, um endereço `https://`. É regra do navegador, não uma limitação do app.
+
+Este repositório já está pronto para o **GitHub Pages**, que é gratuito em repositório
+público:
+
+1. No GitHub, abra **Settings → Pages**
+2. Em *Source*, escolha **Deploy from a branch**
+3. Selecione a branch **main** e a pasta **/ (root)**, e clique em **Save**
+4. Em um ou dois minutos o app estará em
+   `https://<seu-usuário>.github.io/Maternidade/`
+
+Abrindo esse endereço no celular, o Chrome mostra **Instalar app** (ou *Adicionar à tela
+inicial*): o app ganha ícone próprio, abre sem barra de navegador e continua funcionando
+sem internet, porque o service worker guarda tudo no primeiro acesso.
+
+Qualquer outra hospedagem estática com HTTPS serve igual.
 
 No celular o app ocupa a tela inteira; no desktop aparece na moldura de 390×844 do design.
 Não há cabeçalho fixo: cada tela abre com o próprio título, e o enxoval começa zerado — o que
