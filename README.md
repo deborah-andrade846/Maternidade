@@ -95,7 +95,7 @@ ARQUITETURA.md          ← o padrão de construção seguido aqui
 ```
 
 > Ao alterar qualquer arquivo, incremente a versão do cache em `sw.js`
-> (`const CACHE = "nosso-bebe-v5"`), senão quem já usa o app fica preso na versão antiga.
+> (`const CACHE = "nosso-bebe-v6"`), senão quem já usa o app fica preso na versão antiga.
 
 ## Nota
 

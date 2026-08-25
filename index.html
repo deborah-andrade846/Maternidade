@@ -113,9 +113,10 @@ img{display:block;max-width:100%}
 .tabbar{position:absolute;left:0;right:0;bottom:0;height:76px;background:var(--color-bg);
   display:flex;align-items:flex-start;justify-content:space-around;padding-top:14px;
   border-top:1px solid var(--color-neutral-200);z-index:4}
-.tab{text-align:center;width:66px;color:var(--color-neutral-500);background:none;padding:0}
+.tab{width:66px;color:var(--color-neutral-500);background:none;padding:0;
+  display:flex;flex-direction:column;align-items:center;gap:6px}
 .tab.on{color:var(--color-accent)}
-.tab .lbl{font-size:10px;letter-spacing:.06em;margin-top:6px}
+.tab .lbl{font-size:10px;letter-spacing:.06em;text-align:center}
 .overlay{position:absolute;inset:0;background:var(--color-bg);padding:44px 22px 24px;
   overflow-y:auto;z-index:5}
 
@@ -175,6 +176,7 @@ img{display:block;max-width:100%}
 .fase-n{width:44px;flex:0 0 44px;text-align:right}
 .check{display:flex;gap:12px;align-items:baseline;width:100%;text-align:left;
   background:none;padding:0;cursor:pointer}
+.check .ico{width:22px;flex:0 0 22px;display:flex;justify-content:center}
 .riscado{text-decoration:line-through}
 
 /* — estados de mouse: só onde existe ponteiro, senão o toque deixa o :hover grudado — */
@@ -1136,7 +1138,7 @@ function telaMala(){
           const ok = !!state.malaCheck[i.id];
           const cor = ok ? "var(--color-accent)" : "var(--color-text)";
           return `<button class="check" data-action="mala" data-id="${i.id}">
-            <span style="width:22px; flex:0 0 22px">${ic(ok ? "check-circle" : "circle", 20, cor)}</span>
+            <span class="ico">${ic(ok ? "check-circle" : "circle", 20, cor)}</span>
             <span style="flex:1">
               <span style="display:block; font-size:16px; line-height:1.3; color:${cor}" class="${ok ? "riscado" : ""}">${esc(i.nome)}</span>
               <span style="display:block; font-size:12px; color:var(--color-neutral-500); margin-top:2px">
@@ -1153,7 +1155,7 @@ function telaMala(){
         const ok = !!state.malaCheck[nome];
         const cor = ok ? "var(--color-accent)" : "var(--color-text)";
         return `<button class="check" data-action="mala" data-id="${esc(nome)}">
-          <span style="width:22px; flex:0 0 22px">${ic(ok ? "check-circle" : "circle", 20, cor)}</span>
+          <span class="ico">${ic(ok ? "check-circle" : "circle", 20, cor)}</span>
           <span style="flex:1; font-size:16px; color:${cor}" class="${ok ? "riscado" : ""}">${esc(nome)}</span>
         </button>`;
       }).join("")}
