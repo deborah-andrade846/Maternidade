@@ -47,10 +47,13 @@ está “em casa” é só o que você marcar.
 
 ## As telas
 
+São seis abas, e **cada ferramenta mora numa só** — nunca aparece em duas listas. O botão de
+voltar de cada ferramenta leva de volta para a aba dona dela.
+
 ### 🏠 Início
-Semana e trimestre, contagem regressiva para a data prevista, barra de progresso da gestação
-e o texto do desenvolvimento daquela semana. Abaixo, três atalhos vivos: itens do enxoval já
-em casa, próxima consulta e quanto já foi gasto.
+Cartão de saudação com semana, trimestre, contagem regressiva e barra de progresso. Abaixo,
+quatro **ações rápidas** (enxoval, próxima consulta, orçamento e contador de chutes), o texto
+do desenvolvimento da semana e a fila de humor: um toque registra como você está hoje.
 
 ### 🍼 Enxoval
 Catálogo de **75 itens em 8 categorias** — Roupinhas, Fraldas, Higiene & Banho, Quarto & Sono,
@@ -60,21 +63,10 @@ desejos), e dá para ocultar o que não faz sentido para você. Toque no item pa
 quantidade no `−` / `+`, marcar como desejo, editar todos os campos ou apagar. O botão
 **+ Adicionar item** cria itens seus em qualquer categoria.
 
-### 💗 Gravidez
-Semana a semana, do grão de gergelim ao morfológico. A semana atual aparece destacada em
-ciano; as que já passaram, em cinza.
+No topo, uma fila que corre para o lado com tudo que é planejamento de enxoval:
 
-### 🩺 Saúde
-Agenda de consultas, exames e vacinas. Toque no texto para editar, no círculo para marcar
-como feita.
-
-Abaixo, o **cronograma do enxoval**: quatro fases por semana gestacional, com o progresso das
-categorias de cada momento e o que fazer em cada uma.
-
-### ⋯ Mais
 | | O que é |
 |---|---|
-| **Perfil do enxoval** | Tamanho (essencial / completo / caprichado), estação dos primeiros meses, quantos bebês, data prevista do parto e orçamento |
 | **Lista de compras** | Só o que falta, por prioridade, com custo por linha; “Comprei” registra a compra |
 | **Orçamento** | Valor já em casa, gasto por categoria e quanto ainda falta |
 | **Kits & rotinas** | 13 situações reais — banho, troca, sono seguro, passeio, malas — com três estados: pronto, dá para fazer, faltam N |
@@ -82,14 +74,30 @@ categorias de cada momento e o que fazer em cada uma.
 | **Chá de bebê** | Sugestões do que falta, por faixa de preço, reserváveis no nome do convidado |
 | **Lista de desejos** | O que você marcou com ♥, com o custo para completar |
 | **Histórico** | Cada compra registrada, com data, valor e gasto por categoria |
-| **Nomes** | Favoritos de vocês dois — nome, significado e anotação, tudo editável |
-| **Plano de parto** | Temas, opções e anotações que vocês mesmos escrevem |
+| **Perfil do enxoval** | Tamanho (essencial / completo / caprichado), estação dos primeiros meses, quantos bebês, data prevista do parto e orçamento |
+
+### 💗 Gravidez
+Cartões da calculadora gestacional, contador de chutes, diário, colo uterino, IMC e peso e
+respiração — cada um mostrando o número de hoje. Abaixo, semana a semana do grão de gergelim
+ao morfológico (a semana atual em ciano, as que passaram em cinza) e o **cronograma do
+enxoval**: quatro fases por semana gestacional, com o progresso das categorias de cada momento.
+
+### 👶 Bebê
+Amamentação, sono, vacinas e marcos de desenvolvimento — o dia a dia depois que ele chegar.
+
+### 🩺 Saúde
+Cartões de exames, sintomas, humor, hidratação e plano de parto, e embaixo a agenda de
+consultas: toque no texto para editar, no círculo para marcar como feita.
+
+### ⋯ Mais
+Só o que não pertence a nenhuma outra aba: **ciclo menstrual**, **calculadora de
+fertilidade**, **nomes** e **backup e sincronização**.
 
 ### 🧰 As 17 ferramentas
-O **Mais** agora abre em seções. Além do enxoval, ele guarda um conjunto de ferramentas de
-gestação, bem-estar, bebê e ciclo — todas gravando no mesmo `localStorage`, todas offline.
+Todas gravam no mesmo `localStorage` e funcionam offline. Elas ficam nas abas abaixo — não é
+preciso caçar nada dentro do Mais.
 
-**Gestação**
+**Na aba Gravidez**
 
 | | O que faz |
 |---|---|
@@ -98,18 +106,19 @@ gestação, bem-estar, bebê e ciclo — todas gravando no mesmo `localStorage`,
 | **Diário da gestação** | Anotações com data, semana, título e texto livre |
 | **Medição do colo uterino** | Cada medida em mm com semana e observação, classificação automática (colo curto abaixo de 25 mm) e a barra de evolução |
 | **IMC gestacional** | IMC de antes da gravidez, faixa e ganho total recomendado (IOM), histórico de peso e a comparação do ganho de hoje com o esperado para a semana |
-| **Checklist de exames** | 28 exames do pré-natal separados por trimestre, com a janela de cada um e a data em que você marcou |
+| **Meditação e respiração** | Seis exercícios guiados (4-7-8, quadrada, diafragmática, da contração, relaxamento progressivo e pausa de um minuto). A bolha cresce e diminui no tempo de cada fase e conta os ciclos |
 
-**Bem-estar**
+**Na aba Saúde**
 
 | | O que faz |
 |---|---|
-| **Meditação e respiração** | Seis exercícios guiados (4-7-8, quadrada, diafragmática, da contração, relaxamento progressivo e pausa de um minuto). A bolha cresce e diminui no tempo de cada fase e conta os ciclos |
+| **Checklist de exames** | 28 exames do pré-natal separados por trimestre, com a janela de cada um e a data em que você marcou |
 | **Rastreador de sintomas** | 17 sintomas com intensidade, anotação, os mais frequentes em 30 dias e a lista de sinais que pedem atendimento no mesmo dia |
 | **Rastreador de humor** | Nível de 1 a 5, marcadores do que pesa no dia, anotação, média de 14 dias e o gráfico das duas últimas semanas |
 | **Calculadora de hidratação** | Meta calculada pelo peso (35 ml/kg mais o acréscimo da gestação ou da amamentação), contador de copos e os últimos 7 dias |
+| **Plano de parto** | Temas, opções e anotações que vocês mesmos escrevem |
 
-**Bebê**
+**Na aba Bebê**
 
 | | O que faz |
 |---|---|
@@ -118,20 +127,14 @@ gestação, bem-estar, bebê e ciclo — todas gravando no mesmo `localStorage`,
 | **Calendário de vacinas** | Gestante e primeira infância pelo PNI, com a data prevista de cada dose calculada da data de nascimento e o aviso de atraso |
 | **Desenvolvimento do bebê** | 33 marcos de 1 a 24 meses, com a data em que cada um aconteceu |
 
-**Ciclo**
+**Na aba Mais**
 
 | | O que faz |
 |---|---|
 | **Ciclo menstrual** | Registro de cada menstruação, duração média dos últimos ciclos, dia do ciclo e próxima data prevista |
 | **Calculadora de fertilidade** | Ovulação, janela fértil dos próximos três ciclos e a data prevista do parto caso a gravidez aconteça agora |
-
-**Este aparelho**
-
-| | O que faz |
-|---|---|
+| **Nomes** | Favoritos de vocês dois — nome, significado e anotação, tudo editável |
 | **Backup e sincronização** | Baixa um arquivo `.json` com tudo, restaura de um arquivo e gera um código de transferência para colar em outro celular. Nada sai do aparelho: não há servidor nem conta |
-
-As abas **Gravidez** e **Saúde** ganharam atalhos para as ferramentas que combinam com elas.
 
 ### Nomes e plano de parto são seus
 As duas listas começam com uma sugestão, mas nada ali é fixo. Em **Nomes**, o coração
@@ -153,8 +156,12 @@ a contagem regressiva, o texto da home e o cronograma.
 
 Tudo vem dos tokens de `styles.css` do projeto de design: Source Serif 4 em todo o app,
 fundo papel `#f3f2f2`, texto `#201e1d`, ciano `#0088b0` para o que é interativo e magenta
-`#d6006c` como segunda cor de destaque, raios de 1–4 px e hierarquia feita por escala
-tipográfica e espaço em branco — sem caixas nem linhas divisórias.
+`#d6006c` como segunda cor de destaque, e hierarquia feita por escala tipográfica e espaço
+em branco.
+
+Sobre essa base, os cartões usam cantos arredondados (12/18/26 px), um véu de cor bem claro
+(ciano ou magenta) e uma sombra leve; o menu inferior flutua como uma barra em pílula, com a
+aba ativa marcada por um fundo arredondado.
 
 O app não usa CDN nem arquivo externo nenhum: a fonte **Source Serif 4** (OFL) está embutida
 como `woff2` em base64, os ícones **Phosphor duotone** (MIT) como sprite SVG e as ilustrações
@@ -174,7 +181,7 @@ ARQUITETURA.md          ← o padrão de construção seguido aqui
 ```
 
 > Ao alterar qualquer arquivo, incremente a versão do cache em `sw.js`
-> (`const CACHE = "nosso-bebe-v12"`), senão quem já usa o app fica preso na versão antiga.
+> (`const CACHE = "nosso-bebe-v14"`), senão quem já usa o app fica preso na versão antiga.
 
 ## Nota
 

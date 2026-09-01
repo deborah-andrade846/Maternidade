@@ -110,7 +110,7 @@ img{display:block;max-width:100%}
   display:flex;align-items:center;justify-content:space-around;padding:0 6px;
   border-radius:var(--radius-lg);box-shadow:var(--shadow-card);
   border:1px solid color-mix(in srgb,var(--color-text) 6%,transparent);z-index:4}
-.tab{width:60px;height:52px;color:var(--color-neutral-500);background:none;padding:0;border-radius:var(--radius-sm);
+.tab{flex:1 1 0;min-width:0;height:52px;color:var(--color-neutral-500);background:none;padding:0;border-radius:var(--radius-sm);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;transition:background .15s,color .15s}
 .tab.on{color:var(--color-accent);background:var(--color-accent-100)}
 .tab .lbl{font-size:9.5px;letter-spacing:.04em;text-align:center}
@@ -211,6 +211,17 @@ textarea.input{min-height:auto}
 .acao .ic{font-size:24px;color:var(--color-accent-700)}
 .acao.mag .ic{color:var(--color-accent-2-700)}
 .acao .rot{font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:14.5px;line-height:1.2;color:var(--color-text)}
+.atalhos-fila{display:flex;gap:10px;overflow-x:auto;margin:18px -22px 0;padding:2px 22px 6px;
+  scroll-snap-type:x proximate}
+.atalhos-fila>.atalho-mini{flex:0 0 132px;width:132px;scroll-snap-align:start;
+  border-radius:var(--radius-md);padding:12px 13px;background:var(--wash-accent);
+  box-shadow:var(--shadow-card);display:flex;flex-direction:column;gap:6px}
+.atalho-mini.mag{background:var(--wash-accent-2)}
+.atalho-mini .ic{color:var(--color-accent-700)}
+.atalho-mini.mag .ic{color:var(--color-accent-2-700)}
+.atalho-mini .rot{font-family:var(--font-heading);font-weight:var(--font-heading-weight);
+  font-size:14px;line-height:1.2;color:var(--color-text)}
+.atalho-mini .mini{display:block}
 .humor-fila{display:flex;justify-content:space-between;gap:6px}
 .humor-fila button{flex:1;aspect-ratio:1;border-radius:var(--radius-sm);background:var(--color-surface);
   display:flex;align-items:center;justify-content:center;font-size:22px}
@@ -462,9 +473,21 @@ const TABS = [
   ["home",     "Início",   "house"],
   ["enxoval",  "Enxoval",  "baby-carriage"],
   ["gravidez", "Gravidez", "heartbeat"],
+  ["bebe",     "Bebê",     "baby"],
   ["saude",    "Saúde",    "stethoscope"],
   ["mais",     "Mais",     "dots-three-circle"],
 ];
+
+/* Cada ferramenta mora numa aba: é de lá que ela é aberta e é pra lá que o voltar leva. */
+const PAI = {
+  perfil:"enxoval", compras:"enxoval", orcamento:"enxoval", kits:"enxoval", mala:"enxoval",
+  cha:"enxoval", favoritos:"enxoval", historico:"enxoval",
+  calc:"gravidez", chutes:"gravidez", diario:"gravidez", colo:"gravidez", imc:"gravidez",
+  respirar:"gravidez",
+  amamentar:"bebe", sono:"bebe", vacinas:"bebe", marcos:"bebe",
+  exames:"saude", sintomas:"saude", humor:"saude", agua:"saude", parto:"saude",
+  ciclo:"mais", fertil:"mais", nomes:"mais", backup:"mais",
+};
 
 const MESES = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
 
@@ -1226,8 +1249,25 @@ const ic = (nome, tam, cor) =>
 const kicker = (txt, cls="") => `<div class="kicker ${cls}">${esc(txt)}</div>`;
 const barra = (pct, cls="") => `<div class="linha ${cls}"><i style="width:${Math.min(100,pct)}%"></i></div>`;
 const voltar = (tela, rotulo) => `<button class="voltar" data-action="ir" data-tela="${tela}">← ${esc(rotulo)}</button>`;
+const voltarAuto = () => {
+  const pai = PAI[state.tela] || "mais";
+  return voltar(pai, (TABS.find(t=>t[0] === pai) || [,"Mais"])[1]);
+};
 const tagPrio = p => `<span class="tag tag-static ${PRIOS[p][1]}">${PRIOS[p][0]}</span>`;
 const plural = (n, s, p) => n === 1 ? s : (p || s + "s");
+
+/* Cada ferramenta aparece como um cartão só na aba dela — nunca em duas listas. */
+const cardFerramenta = ([tela, icone, nome, valor, nota], i) => `
+  <button class="tocavel acao${i % 2 ? " mag" : ""}" data-action="ir" data-tela="${tela}">
+    ${ic(icone,24)}
+    <div>
+      <div class="rot">${esc(nome)}</div>
+      <div style="font-size:12px; color:var(--color-neutral-600); margin-top:2px">${esc(valor)}${
+        nota ? ` <span style="color:var(--color-neutral-500)">${esc(nota)}</span>` : ""}</div>
+    </div>
+  </button>`;
+const gradeFerramentas = lista =>
+  `<div class="acoes-grade">${lista.map(cardFerramenta).join("")}</div>`;
 
 /* ---------- Início ---------- */
 function telaHome(){
@@ -1265,7 +1305,9 @@ function telaHome(){
       ${acao("enxoval","baby-carriage","Enxoval", `${p.ok} de ${p.meta} peças`)}
       ${acao("saude","stethoscope","Próxima consulta", esc(prox.quando), true)}
       ${acao("orcamento","coins","Orçamento", BRL(valorEmCasa()))}
-      ${acao("mais","sliders-horizontal","Ferramentas", "17 no total", true)}
+      ${acao("chutes","timer","Contador de chutes",
+        state.chuteAtivo ? `${state.chuteAtivo.marcas.length} contando agora`
+                         : `${chutesDeHoje().reduce((s,x)=>s + x.n, 0)} hoje`, true)}
     </div>
   </div>
 
@@ -1311,11 +1353,29 @@ function telaEnxoval(){
   const p = progresso();
   const filtros = [["todos","Tudo"],["falta","Falta"],["tenho","Já tenho"],["fav","Desejos"]];
   const cats = ["Tudo", ...CATS];
+  const planos = [
+    ["compras",  "shopping-cart-simple","Compras",   String(faltantes().length), "itens"],
+    ["orcamento","coins",               "Orçamento", BRL(valorEmCasa()), "de " + BRL(state.meta)],
+    ["kits",     "basket",              "Kits",      `${getKits({mode:"usaveis"}).length}/${KITS.length}`, "dá pra fazer"],
+    ["mala",     "bag",                 "Mala",      `${malaFeitos()}/${malaTodos().length}`, "separados"],
+    ["cha",      "gift",                "Chá de bebê", String(sugestoesCha().reduce((s,x)=>s+x.itens.length,0)), "sugestões"],
+    ["favoritos","star",                "Desejos",   String(state.favoritos.length), "itens"],
+    ["historico","receipt",             "Histórico", String(state.historico.length), "compras"],
+    ["perfil",   "sliders-horizontal",  "Perfil",    PERFIS.find(x=>x[0]===state.perfil)[1], "do enxoval"],
+  ];
   return `
   ${kicker("Enxoval")}
   <div class="h-tela">${p.ok} de ${p.meta}<br>já em casa</div>
   <div style="font-size:13px; color:var(--color-neutral-600); margin-top:8px">
     ${p.itensOk} de ${p.total} itens completos · faltam ${BRL(custoRestante())}</div>
+  <div class="atalhos-fila">
+    ${planos.map(([tela,icone,nome,valor,nota],i)=>`
+      <button class="tocavel atalho-mini${i % 2 ? " mag" : ""}" data-action="ir" data-tela="${tela}">
+        ${ic(icone,22)}
+        <span class="rot">${esc(nome)}</span>
+        <span class="mini">${esc(valor)} ${esc(nota)}</span>
+      </button>`).join("")}
+  </div>
   <input class="input" id="busca" placeholder="Buscar item" value="${esc(busca)}" autocomplete="off" style="margin-top:16px">
   <div class="chips">
     ${cats.map(c=>`<button class="tag ${c === state.catAberta ? "tag-accent" : "tag-outline"}"
@@ -1430,54 +1490,47 @@ function telaItem(){
   <div style="height:24px"></div>`;
 }
 
+/* ---------- Bebê ---------- */
+function telaBebe(){
+  const g = gestacao(), rMam = resumoMamadas(), rSono = resumoSono();
+  const pMarcos = progressoMarcos(), vacFeitas = VACINAS.filter(v=>vacinaFeita(v.id)).length;
+  const desde = rMam.ultima ? duracao(Date.now() - rMam.ultima) : null;
+  return `
+  ${kicker("Bebê")}
+  <div class="h-tela">O dia a dia<br>do bebê</div>
+  <div style="font-size:13px; color:var(--color-neutral-600); margin-top:8px">
+    ${g.nasceu ? `${Math.abs(g.dias)} dias de vida` : "Já dá para deixar tudo pronto: os registros começam quando ele chegar."}</div>
+  <div style="margin-top:22px">
+    ${gradeFerramentas([
+      ["amamentar","baby",      "Amamentação", String(rMam.n), "mamadas hoje"],
+      ["sono",     "moon",      "Sono",        minutosBR(rSono.min), "hoje"],
+      ["vacinas",  "syringe",   "Vacinas",     `${vacFeitas}/${VACINAS.length}`, "doses"],
+      ["marcos",   "chart-line","Marcos",      `${pMarcos.ok}/${pMarcos.total}`, "conquistados"],
+    ])}
+  </div>
+  ${desde ? `<div class="dica" style="margin-top:26px">${ic("baby",20)}
+    <p>A última mamada foi há ${esc(desde)}.</p></div>` : ""}
+  <div style="margin-top:34px; display:flex; gap:14px; align-items:flex-end">
+    <img src="${URSO.casal}" alt="" style="width:96px; object-fit:contain; margin-left:-8px; margin-bottom:-4px">
+    <div style="flex:1; padding-bottom:6px">
+      ${kicker("Depois do parto","kicker-n")}
+      <div style="font-size:14px; line-height:1.5; margin-top:6px; color:var(--color-neutral-700)">
+        Mamadas, sono, vacinas e marcos ficam todos aqui, nesta aba.</div>
+    </div>
+  </div>
+  <div style="height:24px"></div>`;
+}
+
 /* ---------- Mais ---------- */
 function telaMais(){
-  const p = progresso(), mala = malaTodos().length, g = gestacao();
-  const ultimaColo = state.colo.slice().sort((a,b)=>String(b.data).localeCompare(String(a.data)))[0];
-  const pesoHoje = pesoAtual(), pesoPre = num(state.corpo.pesoPre);
-  const pExames = progressoExames(), pMarcos = progressoMarcos();
-  const rMam = resumoMamadas(), rSono = resumoSono();
-  const vacFeitas = VACINAS.filter(v=>vacinaFeita(v.id)).length;
-  const hj = humorDe(isoHoje()), ultimoCiclo = ciclosOrdenados()[0];
-  const chutesHoje = state.chuteAtivo ? state.chuteAtivo.marcas.length
-                                      : chutesDeHoje().reduce((s,x)=>s + x.n, 0);
-  const praticas = Object.values(state.respiros).reduce((s,n)=>s + n, 0);
+  const ultimoCiclo = ciclosOrdenados()[0];
   const secoes = [
-    ["Gestação", [
-      ["calc",     "calculator",   "Calculadora gestacional", "Semanas, data prevista e marcos", `${g.semana}ª`, "semana"],
-      ["chutes",   "timer",        "Contador de chutes",      "Dez movimentos por dia",          String(chutesHoje), state.chuteAtivo ? "contando" : "hoje"],
-      ["diario",   "notebook",     "Diário da gestação",      "O que você não quer esquecer",    String(state.diario.length), "anotações"],
-      ["colo",     "ruler",        "Medição do colo uterino", "A evolução em milímetros",        ultimaColo ? `${ultimaColo.mm} mm` : "—", ultimaColo ? "última" : "sem medida"],
-      ["imc",      "scales",       "IMC gestacional",         "Ganho de peso recomendado",       pesoHoje !== null && pesoPre ? `${pesoHoje - pesoPre >= 0 ? "+" : ""}${(pesoHoje - pesoPre).toFixed(1).replace(".",",")}` : "—", "kg até aqui"],
-      ["exames",   "list-checks",  "Checklist de exames",     "Pré-natal do começo ao fim",      `${pExames.ok}/${pExames.total}`, "feitos"],
-    ]],
-    ["Bem-estar", [
-      ["respirar", "leaf",         "Meditação e respiração",  "Seis exercícios guiados",         String(praticas), "práticas"],
-      ["sintomas", "bandaid",      "Rastreador de sintomas",  "O padrão para levar à consulta",  String(state.sintomas.length), "registros"],
-      ["humor",    "smiley",       "Rastreador de humor",     "Bem-estar emocional",             hj ? (HUMORES.find(h=>h.n === hj.nivel) || {}).nome : "—", hj ? "hoje" : "sem registro"],
-      ["agua",     "drop",         "Calculadora de hidratação","Quanta água beber por dia",      `${(aguaDe(isoHoje())/1000).toFixed(1).replace(".",",")} L`, "hoje"],
-    ]],
-    ["Bebê", [
-      ["amamentar","baby",         "Controle de amamentação", "Cronômetro e histórico",          String(rMam.n), "mamadas hoje"],
-      ["sono",     "moon",         "Monitor de sono",         "Sonecas e noite",                 minutosBR(rSono.min), "hoje"],
-      ["vacinas",  "syringe",      "Calendário de vacinas",   "Gestante e primeira infância",    `${vacFeitas}/${VACINAS.length}`, "doses"],
-      ["marcos",   "chart-line",   "Desenvolvimento do bebê", "Marcos mês a mês",                `${pMarcos.ok}/${pMarcos.total}`, "marcos"],
-    ]],
-    ["Ciclo", [
+    ["Ciclo e planejamento", [
       ["ciclo",    "calendar",     "Ciclo menstrual",         "Duração média e próxima data",    ultimoCiclo ? String(duracaoMediaCiclo()) : "—", "dias de ciclo"],
       ["fertil",   "heart-straight","Calculadora de fertilidade","Janela fértil e ovulação",     ultimoCiclo || dataValida(state.cicloCfg.base) ? "ativa" : "—", "planejamento"],
     ]],
-    ["Enxoval e planos", [
-      ["perfil",   "sliders-horizontal", "Perfil do enxoval",  "Tamanho, estação e quantos bebês", PERFIS.find(x=>x[0]===state.perfil)[1], "perfil"],
-      ["compras",  "shopping-cart-simple","Lista de compras",  "O que falta, por prioridade",     String(faltantes().length), "itens"],
-      ["orcamento","coins",              "Orçamento",          "Quanto já saiu e quanto falta",   BRL(valorEmCasa()), "de " + BRL(state.meta)],
-      ["kits",     "basket",             "Kits & rotinas",     "Montados com o que você tem",     `${getKits({mode:"usaveis"}).length}/${KITS.length}`, "dá pra fazer"],
-      ["mala",     "bag",                "Mala da maternidade","Fechar antes das 36 semanas",     `${malaFeitos()}/${mala}`, "separados"],
-      ["cha",      "gift",               "Chá de bebê",        "Sugestões por faixa de preço",    String(sugestoesCha().reduce((s,x)=>s+x.itens.length,0)), "sugestões"],
-      ["favoritos","star",               "Lista de desejos",   "O que você marcou com ♥",         String(state.favoritos.length), "itens"],
-      ["historico","receipt",            "Histórico",          "Tudo que já foi comprado",        String(state.historico.length), "registros"],
-      ["nomes",    "heart-straight",     "Nomes",              "Favoritos de vocês dois",         String(state.nomes.length), "favoritos"],
-      ["parto",    "clipboard-text",     "Plano de parto",     "Rascunho para levar na consulta", `${state.partoLista.filter(x=>x.escolha).length}/${state.partoLista.length}`, "decididos"],
+    ["Vocês dois", [
+      ["nomes",    "heart-straight","Nomes",                  "Favoritos de vocês dois",         String(state.nomes.length), "favoritos"],
     ]],
     ["Este aparelho", [
       ["backup",   "cloud-arrow",  "Backup e sincronização",  "Levar tudo para outro celular",   "local", "sem servidor"],
@@ -1486,9 +1539,10 @@ function telaMais(){
   let n = 0;
   return `
   ${kicker("Mais")}
-  <div class="h-tela">Ferramentas<br>e planos</div>
+  <div class="h-tela">Ciclo, nomes<br>e backup</div>
   <div style="font-size:13px; color:var(--color-neutral-600); margin-top:8px">
-    ${secoes.reduce((s,sec)=>s + sec[1].length, 0)} ferramentas · ${p.pct}% do enxoval em casa</div>
+    As outras ferramentas moram nas abas: gestação em Gravidez, bebê em Bebê,
+    exames e bem-estar em Saúde, compras e planos em Enxoval.</div>
   ${secoes.map(([titulo, itens])=>`
     <div style="margin-top:34px">
       ${kicker(titulo,"kicker-n")}
@@ -1525,7 +1579,7 @@ function telaPerfil(){
   const opcao = (acao, valor, ativo, rotulo) =>
     `<button class="tag ${ativo ? "tag-accent" : "tag-outline"}" data-action="${acao}" data-v="${valor}">${esc(rotulo)}</button>`;
   return `
-  ${voltar("mais","Mais")}
+  ${voltarAuto()}
   <div class="h1" style="font-size:34px; line-height:1.1; margin-top:14px">Perfil<br>do enxoval</div>
   <div style="font-size:14px; color:var(--color-neutral-600); margin-top:10px">
     Isto define a quantidade recomendada de cada um dos ${CATALOGO.length} itens do catálogo.</div>
@@ -1583,7 +1637,7 @@ function telaCompras(){
   const total = list.reduce((s,f)=>s + f.custo, 0);
   const prios = [[0,"Tudo"],[1,"Essenciais"],[2,"Importantes"],[3,"Opcionais"]];
   return `
-  ${voltar("mais","Mais")}
+  ${voltarAuto()}
   <div class="h1" style="font-size:34px; line-height:1.1; margin-top:14px">Lista de<br>compras</div>
   <div class="numero" style="margin-top:20px">${BRL(total)}</div>
   <div style="font-size:14px; color:var(--color-neutral-600); margin-top:6px">
@@ -1621,7 +1675,7 @@ function telaOrcamento(){
     detalhe: (()=>{ const pc = progressoCat(c); return `${pc.itensOk} de ${pc.total} itens completos`; })(),
   })).filter(c=>c.valor > 0 || true);
   return `
-  ${voltar("mais","Mais")}
+  ${voltarAuto()}
   <div class="h1" style="font-size:34px; line-height:1.1; margin-top:14px">Orçamento</div>
   <div class="h1" style="font-size:52px; line-height:1; margin-top:20px">${BRL(emCasa)}</div>
   <div style="font-size:14px; color:var(--color-neutral-600); margin-top:6px">
@@ -1657,7 +1711,7 @@ function telaKits(){
   const tipos = [["todos","Todos"],["mala","Mala"],["rotina","Rotinas"],["quarto","Quarto"],["passeio","Passeio"]];
   const kits = getKits({tipo: kitTipo === "todos" ? null : kitTipo});
   return `
-  ${voltar("mais","Mais")}
+  ${voltarAuto()}
   <div class="h1" style="font-size:34px; line-height:1.1; margin-top:14px">Kits<br>e rotinas</div>
   <div style="font-size:14px; color:var(--color-neutral-600); margin-top:10px">
     Cada kit junta os itens de uma situação real. Ciano quer dizer que já dá para fazer com o que você tem.</div>
@@ -1695,7 +1749,7 @@ function telaMala(){
   const g = gestacao();
   const forasDeCasa = secoes.flatMap(s=>s.itens).filter(i=>i.tem === 0).length;
   return `
-  ${voltar("mais","Mais")}
+  ${voltarAuto()}
   <div class="h1" style="font-size:34px; line-height:1.1; margin-top:14px">Mala da<br>maternidade</div>
   <div style="font-size:14px; color:var(--color-neutral-600); margin-top:10px">
     ${feitos} de ${total} itens separados · ${forasDeCasa} ainda não estão em casa</div>
@@ -1744,7 +1798,7 @@ function telaCha(){
   const grupos = sugestoesCha();
   const reservados = Object.keys(state.presentes).filter(existe);
   return `
-  ${voltar("mais","Mais")}
+  ${voltarAuto()}
   <div class="h1" style="font-size:34px; line-height:1.1; margin-top:14px">Chá<br>de bebê</div>
   <div style="font-size:14px; color:var(--color-neutral-600); margin-top:10px">
     Sugestões montadas a partir do que realmente falta. Reserve no nome de quem vai presentear.</div>
@@ -1785,7 +1839,7 @@ function telaFavoritos(){
   const ids = state.favoritos.filter(existe);
   const custo = ids.reduce((s,id)=>s + custoFalta(id), 0);
   return `
-  ${voltar("mais","Mais")}
+  ${voltarAuto()}
   <div class="h1" style="font-size:34px; line-height:1.1; margin-top:14px">Lista<br>de desejos</div>
   <div style="font-size:14px; color:var(--color-neutral-600); margin-top:10px">
     ${ids.length ? `${ids.length} ${plural(ids.length,"item","itens")} · ${BRL(custo)} para completar`
@@ -1814,7 +1868,7 @@ function telaHistorico(){
   h.forEach(r=>{ const it = item(r.id); if(it) porCat[it.cat] = (porCat[it.cat] || 0) + (Number(r.valor) || 0); });
   const cats = Object.entries(porCat).sort((a,b)=>b[1]-a[1]);
   return `
-  ${voltar("mais","Mais")}
+  ${voltarAuto()}
   <div class="h1" style="font-size:34px; line-height:1.1; margin-top:14px">Histórico</div>
   ${h.length ? `
   <div class="h1" style="font-size:52px; line-height:1; margin-top:20px">${BRL(total)}</div>
@@ -1856,15 +1910,27 @@ function dataBR(iso){
 /* ---------- Gravidez: semana a semana + cronograma do enxoval ---------- */
 function telaGravidez(){
   const g = gestacao(), fase = faseAtual();
+  const ultimaColo = state.colo.slice().sort((a,b)=>String(b.data).localeCompare(String(a.data)))[0];
+  const pesoHoje = pesoAtual(), pesoPre = num(state.corpo.pesoPre);
+  const ganho = pesoHoje !== null && pesoPre
+    ? `${pesoHoje - pesoPre >= 0 ? "+" : ""}${(pesoHoje - pesoPre).toFixed(1).replace(".",",")} kg` : "—";
+  const chutesHoje = state.chuteAtivo ? state.chuteAtivo.marcas.length
+                                      : chutesDeHoje().reduce((s,x)=>s + x.n, 0);
+  const praticas = Object.values(state.respiros).reduce((s,n)=>s + n, 0);
   return `
   ${kicker("Gravidez")}
   <div class="h-tela">Semana<br>a semana</div>
-  <div class="chips">
-    ${[["calc","Calculadora"],["chutes","Chutes"],["diario","Diário"],["colo","Colo uterino"],
-       ["imc","IMC e peso"],["respirar","Respiração"]].map(([t,r])=>
-      `<button class="tag tag-outline" data-action="ir" data-tela="${t}">${r}</button>`).join("")}
+  <div style="margin-top:22px">
+    ${gradeFerramentas([
+      ["calc",    "calculator","Calculadora",   `${g.semana}ª`, "semana"],
+      ["chutes",  "timer",     "Chutes",        String(chutesHoje), state.chuteAtivo ? "contando" : "hoje"],
+      ["diario",  "notebook",  "Diário",        String(state.diario.length), "anotações"],
+      ["colo",    "ruler",     "Colo uterino",  ultimaColo ? `${ultimaColo.mm} mm` : "—", ultimaColo ? "última" : "sem medida"],
+      ["imc",     "scales",    "IMC e peso",    ganho, "até aqui"],
+      ["respirar","leaf",      "Respiração",    String(praticas), "práticas"],
+    ])}
   </div>
-  <div class="lista" style="gap:26px; margin-top:26px">
+  <div class="lista" style="gap:26px; margin-top:32px">
     ${SEMANAS.map(s=>{
       const cor = s.n === g.semana ? "var(--color-accent)"
                 : (s.n < g.semana ? "var(--color-neutral-500)" : "var(--color-text)");
@@ -1911,15 +1977,21 @@ function telaGravidez(){
 
 /* ---------- Saúde ---------- */
 function telaSaude(){
+  const pExames = progressoExames(), hj = humorDe(isoHoje());
   return `
   ${kicker("Saúde")}
-  <div class="h-tela">Consultas,<br>exames e vacinas</div>
-  <div class="chips">
-    ${[["exames","Checklist de exames"],["vacinas","Vacinas"],["sintomas","Sintomas"],
-       ["humor","Humor"],["agua","Hidratação"]].map(([t,r])=>
-      `<button class="tag tag-outline" data-action="ir" data-tela="${t}">${r}</button>`).join("")}
+  <div class="h-tela">Consultas<br>e bem-estar</div>
+  <div style="margin-top:22px">
+    ${gradeFerramentas([
+      ["exames",  "list-checks",   "Exames",      `${pExames.ok}/${pExames.total}`, "feitos"],
+      ["sintomas","bandaid",       "Sintomas",    String(state.sintomas.length), "registros"],
+      ["humor",   "smiley",        "Humor",       hj ? (HUMORES.find(h=>h.n === hj.nivel) || {}).nome : "—", hj ? "hoje" : "sem registro"],
+      ["agua",    "drop",          "Hidratação",  `${(aguaDe(isoHoje())/1000).toFixed(1).replace(".",",")} L`, "hoje"],
+      ["parto",   "clipboard-text","Plano de parto", `${state.partoLista.filter(x=>x.escolha).length}/${state.partoLista.length}`, "decididos"],
+    ])}
   </div>
-  <div class="lista" style="gap:22px; margin-top:28px">
+  <div style="margin-top:30px">${kicker("Agenda","kicker-n")}</div>
+  <div class="lista" style="gap:22px; margin-top:14px">
     ${state.agenda.length ? state.agenda.map((a,k)=>{
       const feito = state.feitos.includes(k);
       const cor = feito ? "var(--color-neutral-500)" : "var(--color-text)";
@@ -1944,7 +2016,7 @@ function telaSaude(){
 /* ---------- Nomes ---------- */
 function telaNomes(){
   return `
-  ${voltar("mais","Mais")}
+  ${voltarAuto()}
   <div class="h1" style="font-size:34px; line-height:1.1; margin-top:14px">Nomes</div>
   <div style="font-size:14px; color:var(--color-neutral-600); margin-top:10px">
     Toque no coração pra marcar os favoritos de vocês dois. Toque no nome para escrever
@@ -1974,7 +2046,7 @@ function telaNomes(){
 /* ---------- Plano de parto ---------- */
 function telaParto(){
   return `
-  ${voltar("mais","Mais")}
+  ${voltarAuto()}
   <div class="h1" style="font-size:34px; line-height:1.1; margin-top:14px">Plano de parto</div>
   <div style="font-size:14px; color:var(--color-neutral-600); margin-top:10px">
     Rascunho para levar na consulta. Toque para marcar o que vocês preferem — e em
@@ -2167,7 +2239,7 @@ function formZerar(){
 
 /* Cabeçalho comum das ferramentas */
 const capa = (titulo, linha) => `
-  ${voltar("mais","Mais")}
+  ${voltarAuto()}
   <div class="h1" style="font-size:34px; line-height:1.1; margin-top:14px">${titulo}</div>
   ${linha ? `<div style="font-size:14px; color:var(--color-neutral-600); margin-top:10px">${linha}</div>` : ""}`;
 const campoData = (rot, chave, valor, extra="") => `
@@ -3141,7 +3213,7 @@ function formRestaurar(){
 }
 
 /* ---------- Dispatcher ---------- */
-const TELAS = {home:telaHome, enxoval:telaEnxoval, gravidez:telaGravidez, saude:telaSaude,
+const TELAS = {home:telaHome, enxoval:telaEnxoval, gravidez:telaGravidez, bebe:telaBebe, saude:telaSaude,
   mais:telaMais, perfil:telaPerfil, compras:telaCompras, orcamento:telaOrcamento, kits:telaKits,
   mala:telaMala, cha:telaCha, favoritos:telaFavoritos, historico:telaHistorico,
   nomes:telaNomes, parto:telaParto,
