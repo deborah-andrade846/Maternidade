@@ -3747,8 +3747,29 @@ function init(){
 }
 init();
 
+/* Service worker: guarda o app para funcionar sem internet.
+   O preço disso é o cache ficar servindo a versão antiga. Para a atualização
+   chegar sozinha: sw.js é sempre buscado na rede (updateViaCache "none"), o
+   worker novo assume na hora (skipWaiting no sw.js) e a página recarrega uma
+   única vez quando o controle troca. Na primeira instalação não recarrega,
+   porque aí não existe versão velha na tela. */
 if("serviceWorker" in navigator && location.protocol.startsWith("http")){
-  window.addEventListener("load", ()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+  const jaControlada = !!navigator.serviceWorker.controller;
+  let recarregando = false;
+  navigator.serviceWorker.addEventListener("controllerchange", ()=>{
+    if(recarregando || !jaControlada) return;
+    recarregando = true;
+    location.reload();
+  });
+  window.addEventListener("load", ()=>{
+    navigator.serviceWorker.register("sw.js", {updateViaCache:"none"}).then(reg=>{
+      reg.update().catch(()=>{});                        /* procura versão nova ao abrir */
+      setInterval(()=>reg.update().catch(()=>{}), 3600000);
+      document.addEventListener("visibilitychange", ()=>{
+        if(!document.hidden) reg.update().catch(()=>{});  /* e ao voltar para o app */
+      });
+    }).catch(()=>{});
+  });
 }
 </script>
 </body>

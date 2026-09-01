@@ -1,7 +1,7 @@
 /* Service worker do "Nosso bebê".
    IMPORTANTE: ao mudar qualquer arquivo, incremente a versão do cache abaixo. */
 "use strict";
-const CACHE = "nosso-bebe-v11";
+const CACHE = "nosso-bebe-v12";
 const ASSETS = [
   "./",
   "./index.html",
@@ -13,7 +13,10 @@ const ASSETS = [
 ];
 
 self.addEventListener("install", (e)=>{
-  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()));
+  /* cache:"reload" ignora o cache HTTP do navegador: a versão nova vem da rede */
+  e.waitUntil(caches.open(CACHE)
+    .then(c=>c.addAll(ASSETS.map(u=>new Request(u, {cache:"reload"}))))
+    .then(()=>self.skipWaiting()));
 });
 
 self.addEventListener("activate", (e)=>{
