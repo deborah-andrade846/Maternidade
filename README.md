@@ -43,6 +43,11 @@ No celular o app ocupa a tela inteira; no desktop aparece na moldura de 390×844
 Não há cabeçalho fixo: cada tela abre com o próprio título, e o enxoval começa zerado — o que
 está “em casa” é só o que você marcar.
 
+O **botão voltar do aparelho** navega dentro do app: fecha o formulário aberto, fecha o item
+do enxoval, volta da ferramenta para a aba dela e sobe até o Início — só aí, na raiz, é que
+ele fecha o app. O “←” de cada tela faz exatamente a mesma coisa, então os dois caminhos nunca
+se desfazem um ao outro. Reabrindo o app numa tela interna, o Início continua sendo a raiz.
+
 ---
 
 ## As telas
@@ -195,7 +200,7 @@ ARQUITETURA.md          ← o padrão de construção seguido aqui
 ```
 
 > Ao alterar qualquer arquivo, incremente a versão do cache em `sw.js`
-> (`const CACHE = "nosso-bebe-v15"`), senão quem já usa o app fica preso na versão antiga.
+> (`const CACHE = "nosso-bebe-v16"`), senão quem já usa o app fica preso na versão antiga.
 
 ## Nota
 
