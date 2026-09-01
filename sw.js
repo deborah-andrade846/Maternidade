@@ -1,7 +1,7 @@
 /* Service worker do "Nosso bebê".
    IMPORTANTE: ao mudar qualquer arquivo, incremente a versão do cache abaixo. */
 "use strict";
-const CACHE = "nosso-bebe-v10";
+const CACHE = "nosso-bebe-v11";
 const ASSETS = [
   "./",
   "./index.html",
