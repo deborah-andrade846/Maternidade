@@ -1302,7 +1302,8 @@ const ic = (nome, tam, cor) =>
   `<svg class="ic" style="font-size:${tam}px${cor?`;color:${cor}`:""}" aria-hidden="true"><use href="#i-${nome}"></use></svg>`;
 const kicker = (txt, cls="") => `<div class="kicker ${cls}">${esc(txt)}</div>`;
 const barra = (pct, cls="") => `<div class="linha ${cls}"><i style="width:${Math.min(100,pct)}%"></i></div>`;
-const voltar = (tela, rotulo) => `<button class="voltar" data-action="ir" data-tela="${tela}">← ${esc(rotulo)}</button>`;
+const voltar = (tela, rotulo) =>
+  `<button class="voltar" data-action="ir" data-tela="${tela}" data-voltar="1">← ${esc(rotulo)}</button>`;
 const voltarAuto = () => {
   const pai = PAI[state.tela] || "mais";
   return voltar(pai, (TABS.find(t=>t[0] === pai) || [,"Mais"])[1]);
@@ -3403,13 +3404,63 @@ function render(){
     if(el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
     refocar = false;
   }
+  navSincronizar();
 }
+
+/* ==================================================================
+   Botão voltar do aparelho — cada tela, item e formulário vira uma
+   parada no histórico, senão o Android entende "voltar" como "sair".
+   ================================================================== */
+const NAV_APP = "nosso-bebe";
+const navSig = () => JSON.stringify([state.tela, state.itemAberto, formTipo]);
+let navPilha = [], navIndice = 0, navRestaurando = false;
+
+const navEstado = () =>
+  ({app:NAV_APP, i:navIndice, tela:state.tela, item:state.itemAberto, forma:formTipo, dados:form});
+
+/* A raiz é sempre o Início: quem reabre o app numa tela interna volta para
+   casa antes de sair, como em qualquer app de celular. */
+function navIniciar(){
+  navIndice = 0;
+  navPilha = [JSON.stringify(["home", null, null])];
+  try{ history.replaceState({app:NAV_APP, i:0, tela:"home", item:null, forma:null, dados:{}}, ""); }catch(e){}
+}
+/* Chamado no fim de cada render: só empilha quando a navegação realmente mudou */
+function navSincronizar(){
+  if(navRestaurando || !navPilha.length) return;
+  const sig = navSig();
+  if(sig === navPilha[navIndice]) return;
+  navIndice++;
+  navPilha = [...navPilha.slice(0, navIndice), sig];
+  try{ history.pushState(navEstado(), ""); }catch(e){}
+}
+/* Voltar de dentro do app: quando o destino é de onde viemos, anda o
+   histórico para trás — assim o botão do aparelho não desfaz o toque. */
+function navVoltar(tela, item, forma){
+  const alvo = JSON.stringify([tela, item ?? null, forma ?? null]);
+  if(navIndice > 0 && navPilha[navIndice - 1] === alvo){ history.back(); return true; }
+  return false;
+}
+window.addEventListener("popstate",(e)=>{
+  const s = e.state;
+  if(!s || s.app !== NAV_APP) return;      /* não é nosso: o navegador que decida */
+  navRestaurando = true;
+  state.tela = s.tela;
+  state.itemAberto = s.item || null;
+  formTipo = s.forma || null;
+  form = s.dados || {};
+  navIndice = Number(s.i) || 0;
+  save(); render();
+  navRestaurando = false;
+});
 function patchEnxoval(){                       /* atualiza a lista sem recriar a busca */
   const el = document.getElementById("listaEnxoval");
   if(!el){ render(); return; }
   el.innerHTML = listaEnxoval();
 }
-function ir(tela){
+function ir(tela, voltando){
+  /* o "←" da tela é a mesma coisa que o voltar do aparelho: anda o histórico */
+  if(voltando && navVoltar(tela, null, null)) return;
   state.tela = tela; state.itemAberto = null;
   save(); render();
   document.getElementById("tela").scrollTop = 0;
@@ -3419,7 +3470,10 @@ function ir(tela){
    CAMADA 5 — ACTIONS (um mapa + delegação de eventos)
    ================================================================== */
 function abrirForm(tipo, base){ formTipo = tipo; form = base || {}; render(); }
-function fecharForm(){ formTipo = null; form = {}; render(); }
+function fecharForm(){
+  if(navVoltar(state.tela, state.itemAberto, null)) return;   /* fechar é voltar */
+  formTipo = null; form = {}; render();
+}
 const num = v => { const n = parseFloat(String(v ?? "").replace(",", ".")); return isNaN(n) ? null : n; };
 function ajusteDe(id){ return (state.itens[id] = state.itens[id] || {}); }
 
@@ -3497,7 +3551,7 @@ function salvarParto(){
 }
 
 const ACTIONS = {
-  "ir":(d)=>ir(d.tela),
+  "ir":(d)=>ir(d.tela, "voltar" in d),
   "ir-cat":(d)=>{ state.catAberta = d.cat; filtro = "todos"; busca = ""; ir("enxoval"); },
   "cat":(d)=>{ state.catAberta = d.cat; save(); render(); },
   "filtro":(d)=>{ filtro = d.f; render(); },
@@ -4043,6 +4097,7 @@ setInterval(()=>{
 function init(){
   load();
   save();
+  navIniciar();          /* a primeira parada do histórico é a tela em que o app abriu */
   render();
 
   /* dev check: nenhuma referência cruzada pode apontar para um id inexistente */
