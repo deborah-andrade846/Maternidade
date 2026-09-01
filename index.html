@@ -48,11 +48,15 @@
   --font-body:"Source Serif 4",Georgia,"Times New Roman",serif;
 
   --space-1:5px; --space-2:10px; --space-3:15px; --space-4:20px; --space-6:30px; --space-8:40px;
-  --radius-sm:1px; --radius-md:2px; --radius-lg:4px;
+  --radius-sm:12px; --radius-md:18px; --radius-lg:26px;
 
   --shadow-sm:0 1px 2px color-mix(in srgb,#2d2b2b 14%,transparent);
   --shadow-md:0 3px 10px color-mix(in srgb,#2d2b2b 16%,transparent);
   --shadow-lg:0 12px 32px color-mix(in srgb,#2d2b2b 22%,transparent);
+  --shadow-card:0 6px 18px color-mix(in srgb,var(--color-accent-900) 10%,transparent);
+
+  --wash-accent:linear-gradient(155deg,var(--color-accent-100),var(--color-bg) 70%);
+  --wash-accent-2:linear-gradient(155deg,var(--color-accent-2-100),var(--color-bg) 70%);
 }
 
 /* — base — */
@@ -87,7 +91,7 @@ img{display:block;max-width:100%}
   color:color-mix(in srgb,var(--color-text) 70%,transparent)}
 .input{width:100%;min-height:36px;padding:6px 10px;font:inherit;font-size:14px;
   color:var(--color-text);caret-color:var(--color-accent);background:var(--color-surface);
-  border:1px solid var(--color-divider);border-radius:var(--radius-md)}
+  border:1px solid var(--color-divider);border-radius:var(--radius-sm)}
 .input:focus-visible{border-color:var(--color-accent);outline-offset:0}
 .tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;letter-spacing:.02em;
   padding:3px 10px;border-radius:calc(var(--radius-md)*.75);cursor:pointer;white-space:nowrap}
@@ -100,15 +104,16 @@ img{display:block;max-width:100%}
 /* — moldura do app — */
 .phone{width:390px;height:844px;background:var(--color-bg);position:relative;overflow:hidden;
   box-shadow:var(--shadow-lg);border-radius:var(--radius-md);flex:none}
-.scroll{position:absolute;inset:0;bottom:76px;overflow-y:auto;
+.scroll{position:absolute;inset:0;bottom:92px;overflow-y:auto;
   padding:max(22px,env(safe-area-inset-top,0px)) 22px 24px}
-.tabbar{position:absolute;left:0;right:0;bottom:0;height:76px;background:var(--color-bg);
-  display:flex;align-items:flex-start;justify-content:space-around;padding-top:14px;
-  border-top:1px solid var(--color-neutral-200);z-index:4}
-.tab{width:66px;color:var(--color-neutral-500);background:none;padding:0;
-  display:flex;flex-direction:column;align-items:center;gap:6px}
-.tab.on{color:var(--color-accent)}
-.tab .lbl{font-size:10px;letter-spacing:.06em;text-align:center}
+.tabbar{position:absolute;left:14px;right:14px;bottom:16px;height:68px;background:var(--color-bg);
+  display:flex;align-items:center;justify-content:space-around;padding:0 6px;
+  border-radius:var(--radius-lg);box-shadow:var(--shadow-card);
+  border:1px solid color-mix(in srgb,var(--color-text) 6%,transparent);z-index:4}
+.tab{width:60px;height:52px;color:var(--color-neutral-500);background:none;padding:0;border-radius:var(--radius-sm);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;transition:background .15s,color .15s}
+.tab.on{color:var(--color-accent);background:var(--color-accent-100)}
+.tab .lbl{font-size:9.5px;letter-spacing:.04em;text-align:center}
 .overlay{position:absolute;inset:0;background:var(--color-bg);overflow-y:auto;z-index:5;
   padding:max(30px,env(safe-area-inset-top,0px)) 22px 24px}
 
@@ -123,8 +128,9 @@ img{display:block;max-width:100%}
 .h1{font-family:var(--font-heading);font-weight:var(--font-heading-weight)}
 .muted{color:var(--color-neutral-600)}
 .voltar{font-size:13px;color:var(--color-accent-700);background:none;padding:0;text-align:left}
-.linha{margin-top:22px;height:3px;background:var(--color-neutral-200);position:relative}
-.linha>i{display:block;height:3px;background:var(--color-accent)}
+.linha{margin-top:22px;height:5px;background:var(--color-neutral-200);position:relative;
+  border-radius:99px;overflow:hidden}
+.linha>i{display:block;height:5px;background:var(--color-accent);border-radius:99px}
 .linha.mag>i{background:var(--color-accent-2)}
 .linha.fina{margin-top:10px}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
@@ -160,8 +166,8 @@ img{display:block;max-width:100%}
 .dupla{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
 .pilha{display:grid;gap:6px}
 .pills{display:flex;flex-wrap:wrap;gap:6px}
-.dica{background:var(--color-surface);border-radius:var(--radius-md);padding:12px 14px;
-  display:flex;gap:10px;align-items:flex-start}
+.dica{background:var(--wash-accent-2);border-radius:var(--radius-md);padding:14px 16px;
+  display:flex;gap:10px;align-items:flex-start;box-shadow:var(--shadow-card)}
 .dica .ic{color:var(--color-accent-700);flex:0 0 auto;font-size:20px;margin-top:1px}
 .dica p{margin:0;font-size:13.5px;line-height:1.5;color:var(--color-neutral-700)}
 .fase{display:flex;gap:16px;align-items:flex-start}
@@ -181,8 +187,9 @@ img{display:block;max-width:100%}
 }
 
 /* — ferramentas — */
-.grade{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.cartao{background:var(--color-surface);border-radius:var(--radius-md);padding:13px 14px}
+.grade{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.cartao{background:var(--color-surface);border-radius:var(--radius-md);padding:14px 15px;
+  box-shadow:var(--shadow-card)}
 .mini{font-size:12px;color:var(--color-neutral-500);line-height:1.4}
 .barras{display:flex;align-items:flex-end;gap:5px;height:90px;margin-top:14px}
 .barras>span{flex:1;background:var(--color-neutral-300);min-height:2px;
@@ -193,6 +200,20 @@ img{display:block;max-width:100%}
   transition:transform 1s ease-in-out;font-family:var(--font-heading);
   font-weight:var(--font-heading-weight);font-size:34px;color:var(--color-accent-800)}
 textarea.input{min-height:auto}
+
+/* — início: saudação, ações rápidas, humor — */
+.saudacao{background:var(--wash-accent);border-radius:var(--radius-lg);padding:20px 22px;
+  box-shadow:var(--shadow-card);position:relative;overflow:hidden}
+.acoes-grade{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.acao{border-radius:var(--radius-md);padding:16px;text-align:left;background:var(--wash-accent);
+  box-shadow:var(--shadow-card);display:flex;flex-direction:column;gap:10px;min-height:96px}
+.acao.mag{background:var(--wash-accent-2)}
+.acao .ic{font-size:24px;color:var(--color-accent-700)}
+.acao.mag .ic{color:var(--color-accent-2-700)}
+.acao .rot{font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:14.5px;line-height:1.2;color:var(--color-text)}
+.humor-fila{display:flex;justify-content:space-between;gap:6px}
+.humor-fila button{flex:1;aspect-ratio:1;border-radius:var(--radius-sm);background:var(--color-surface);
+  display:flex;align-items:center;justify-content:center;font-size:22px}
 
 /* — celular de verdade: a moldura vira a tela inteira — */
 @media (max-width:460px),(max-height:900px){
@@ -1214,36 +1235,57 @@ function telaHome(){
   const hero = g.nasceu ? `Oi, mamãe.<br>Ele chegou<br>há ${Math.abs(g.dias)} dias.`
                         : `Oi, mamãe.<br>Faltam<br>${g.dias} dias.`;
   const prox = proximaConsulta();
-  const atalho = (tela, rotulo, valor, desc, primeiro) => `
-    <button class="tocavel" data-action="ir" data-tela="${tela}"${primeiro?"":' style="margin-top:8px"'}>
-      ${kicker(rotulo, "kicker-2")}
-      <div class="h1" style="font-size:26px; margin-top:4px">${valor}</div>
-      <div style="font-size:14px; color:var(--color-neutral-600); margin-top:2px">${desc}</div>
+  const dHoje = humorDe(isoHoje());
+  const acao = (tela, icone, rotulo, desc, mag) => `
+    <button class="tocavel acao${mag?" mag":""}" data-action="ir" data-tela="${tela}">
+      ${ic(icone,24)}
+      <div>
+        <div class="rot">${esc(rotulo)}</div>
+        <div style="font-size:12px; color:var(--color-neutral-600); margin-top:2px">${esc(desc)}</div>
+      </div>
     </button>`;
   return `
-  <div style="display:flex; align-items:flex-end; gap:6px">
-    <div style="flex:1">
-      ${kicker(g.nasceu ? `Nasceu · ${dataCurta(state.dpp)}` : `Semana ${g.semana} · ${g.trimestre} trimestre`)}
-      <div class="h-hero">${hero}</div>
+  <div class="saudacao">
+    <div style="display:flex; align-items:flex-end; gap:6px">
+      <div style="flex:1">
+        ${kicker(g.nasceu ? `Nasceu · ${dataCurta(state.dpp)}` : `Semana ${g.semana} · ${g.trimestre} trimestre`)}
+        <div class="h-hero" style="font-size:30px; margin-top:8px">${hero}</div>
+      </div>
+      <img src="${URSO.hero}" alt="" style="width:104px; object-fit:contain; margin-bottom:-6px; margin-right:-8px">
     </div>
-    <img src="${URSO.hero}" alt="" style="width:118px; object-fit:contain; margin-bottom:-6px; margin-right:-14px">
-  </div>
-  ${barra(g.pct)}
-  <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--color-neutral-600); margin-top:8px">
-    <span>${g.pct}% da gestação</span><span>previsto ${dataCurta(state.dpp)}</span>
-  </div>
-
-  <div class="h1" style="font-size:22px; margin-top:38px">Seu bebê esta semana</div>
-  <div style="font-size:16px; line-height:1.55; margin-top:8px; color:var(--color-neutral-700)">${esc(textoDaSemana(g.semana))}</div>
-
-  <div style="display:grid; gap:14px; margin-top:34px">
-    ${atalho("enxoval","Enxoval", `${p.ok} de ${p.meta} peças`,
-      `${faltantes({prio:1}).length} ${plural(faltantes({prio:1}).length,"essencial","essenciais")} ainda faltando`, true)}
-    ${atalho("saude","Próxima consulta", esc(prox.quando), esc(prox.desc))}
-    ${atalho("orcamento","Orçamento", BRL(valorEmCasa()), `de ${BRL(state.meta)} planejados`)}
+    ${barra(g.pct)}
+    <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--color-neutral-600); margin-top:8px">
+      <span>${g.pct}% da gestação</span><span>previsto ${dataCurta(state.dpp)}</span>
+    </div>
   </div>
 
-  <div style="margin-top:38px">
+  <div style="margin-top:28px">
+    ${kicker("Ações rápidas","kicker-n")}
+    <div class="acoes-grade" style="margin-top:12px">
+      ${acao("enxoval","baby-carriage","Enxoval", `${p.ok} de ${p.meta} peças`)}
+      ${acao("saude","stethoscope","Próxima consulta", esc(prox.quando), true)}
+      ${acao("orcamento","coins","Orçamento", BRL(valorEmCasa()))}
+      ${acao("mais","sliders-horizontal","Ferramentas", "17 no total", true)}
+    </div>
+  </div>
+
+  <div class="dica" style="margin-top:26px">${ic("lightbulb",20)}
+    <div>
+      <div class="h1" style="font-size:15px">Seu bebê esta semana</div>
+      <p style="margin-top:4px">${esc(textoDaSemana(g.semana))}</p>
+    </div>
+  </div>
+
+  <div style="margin-top:26px">
+    ${kicker("Como você está hoje?","kicker-n")}
+    <div class="humor-fila" style="margin-top:12px">
+      ${HUMORES.map(h=>`<button data-action="humor-nivel" data-v="${h.n}"
+        aria-label="${esc(h.nome)}" style="${dHoje && dHoje.nivel===h.n ? "background:var(--color-accent-200)" : ""}">
+        ${["😔","😕","😐","🙂","😄"][h.n-1]}</button>`).join("")}
+    </div>
+  </div>
+
+  <div style="margin-top:32px">
     ${kicker("Próximos passos","kicker-n")}
     <div class="lista" style="gap:18px; margin-top:14px">
       ${proximasAcoes().map(a=>`
@@ -1254,7 +1296,7 @@ function telaHome(){
     </div>
   </div>
 
-  <div style="margin-top:44px; display:flex; gap:14px; align-items:flex-end">
+  <div style="margin-top:36px; display:flex; gap:14px; align-items:flex-end">
     <img src="${URSO.casal}" alt="" style="width:104px; object-fit:contain; margin-left:-8px; margin-bottom:-4px">
     <div style="flex:1; padding-bottom:6px">
       ${kicker("Vocês dois","kicker-n")}
