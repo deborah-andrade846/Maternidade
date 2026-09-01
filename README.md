@@ -70,8 +70,6 @@ No topo, uma fila que corre para o lado com tudo que é planejamento de enxoval:
 | **Lista de compras** | Só o que falta, por prioridade, com custo por linha; “Comprei” registra a compra |
 | **Orçamento** | Valor já em casa, gasto por categoria e quanto ainda falta |
 | **Kits & rotinas** | 13 situações reais — banho, troca, sono seguro, passeio, malas — com três estados: pronto, dá para fazer, faltam N |
-| **Mala da maternidade** | Gerada dos kits de mala, destacando o que ainda não está em casa |
-| **Chá de bebê** | Sugestões do que falta, por faixa de preço, reserváveis no nome do convidado |
 | **Lista de desejos** | O que você marcou com ♥, com o custo para completar |
 | **Histórico** | Cada compra registrada, com data, valor e gasto por categoria |
 | **Perfil do enxoval** | Tamanho (essencial / completo / caprichado), estação dos primeiros meses, quantos bebês, data prevista do parto e orçamento |
@@ -84,6 +82,22 @@ enxoval**: quatro fases por semana gestacional, com o progresso das categorias d
 
 ### 👶 Bebê
 Amamentação, sono, vacinas e marcos de desenvolvimento — o dia a dia depois que ele chegar.
+Em **Para a chegada**, as duas coisas que se preparam antes do parto:
+
+| | O que é |
+|---|---|
+| **Mala da maternidade** | Gerada dos kits de mala, destacando o que ainda não está em casa |
+| **Chá de bebê** | A lista de presentes que você monta e manda pronta — veja abaixo |
+
+#### 🎁 Chá de bebê: uma lista para compartilhar
+Não é o enxoval repetido: você escolhe quais itens entram na lista de presentes (só entra o
+que ainda falta), em **Escolher presentes**, ou toca em **Montar com o que falta** para começar
+pelos 20 mais urgentes. Você escreve quando e onde é o chá e o recado do fim, e o botão
+**Compartilhar lista** monta um texto pronto — os presentes agrupados por faixa de preço, com
+quantidade, tamanho e preço aproximado — e abre o menu do celular para mandar no WhatsApp.
+Onde o menu de compartilhar não existe, o texto é copiado e aparece na tela para colar.
+Quando alguém disser que leva um presente, **Reservar** guarda o nome e o item passa para
+“já reservados”, para ninguém repetir. Nada sai do aparelho sozinho: não há servidor nem conta.
 
 ### 🩺 Saúde
 Cartões de exames, sintomas, humor, hidratação e plano de parto, e embaixo a agenda de
@@ -181,7 +195,7 @@ ARQUITETURA.md          ← o padrão de construção seguido aqui
 ```
 
 > Ao alterar qualquer arquivo, incremente a versão do cache em `sw.js`
-> (`const CACHE = "nosso-bebe-v14"`), senão quem já usa o app fica preso na versão antiga.
+> (`const CACHE = "nosso-bebe-v15"`), senão quem já usa o app fica preso na versão antiga.
 
 ## Nota
 

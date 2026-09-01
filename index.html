@@ -480,11 +480,11 @@ const TABS = [
 
 /* Cada ferramenta mora numa aba: é de lá que ela é aberta e é pra lá que o voltar leva. */
 const PAI = {
-  perfil:"enxoval", compras:"enxoval", orcamento:"enxoval", kits:"enxoval", mala:"enxoval",
-  cha:"enxoval", favoritos:"enxoval", historico:"enxoval",
+  perfil:"enxoval", compras:"enxoval", orcamento:"enxoval", kits:"enxoval",
+  favoritos:"enxoval", historico:"enxoval",
   calc:"gravidez", chutes:"gravidez", diario:"gravidez", colo:"gravidez", imc:"gravidez",
   respirar:"gravidez",
-  amamentar:"bebe", sono:"bebe", vacinas:"bebe", marcos:"bebe",
+  amamentar:"bebe", sono:"bebe", vacinas:"bebe", marcos:"bebe", mala:"bebe", cha:"bebe",
   exames:"saude", sintomas:"saude", humor:"saude", agua:"saude", parto:"saude",
   ciclo:"mais", fertil:"mais", nomes:"mais", backup:"mais",
 };
@@ -722,6 +722,8 @@ function estadoInicial(){
     dpp:"", meta:9000,
     favoritos:[],      /* ids na lista de desejos */
     presentes:{},      /* id -> quem vai presentear (chá de bebê) */
+    chaLista:[],       /* ids escolhidos para a lista de presentes do chá */
+    chaFesta:{quando:"", onde:"", recado:""},   /* o que vai no texto compartilhado */
     malaCheck:{},      /* id -> true quando já está dentro da mala */
     bolsaExtras:[],    /* coisas soltas que você acrescentou à mala */
     historico:[],      /* [{data,ts,id,qtd,valor}] */
@@ -758,7 +760,8 @@ let state = estadoInicial();
 
 /* Tudo que vai para o localStorage — e para o arquivo de backup */
 const SALVAR = ["tela","catAberta","itens","extras","perfil","estacao","bebes","dpp","meta",
-  "favoritos","presentes","malaCheck","bolsaExtras","historico","agenda","feitos","nomesLista",
+  "favoritos","presentes","chaLista","chaFesta","malaCheck","bolsaExtras","historico","agenda",
+  "feitos","nomesLista",
   "nomes","partoLista","calc","chuteAtivo","chutesHist","diario","colo","respiros","sintomas",
   "corpo","pesos","exames","vacinas","marcos","nascimento","mamadaAtiva","mamadas","sonoAtivo",
   "sono","agua","ciclos","cicloCfg","humor"];
@@ -775,6 +778,13 @@ function load(){
   if(!Array.isArray(state.extras))     state.extras = [];
   if(!Array.isArray(state.favoritos))  state.favoritos = [];
   if(!state.presentes || Array.isArray(state.presentes)) state.presentes = {};
+  if(!Array.isArray(state.chaLista)) state.chaLista = [];
+  /* quem já tinha presentes reservados na versão antiga entra na lista nova sem perder nada */
+  state.chaLista = [...new Set([...state.chaLista, ...Object.keys(state.presentes)]
+    .filter(id=>typeof id === "string"))];
+  if(!state.chaFesta || typeof state.chaFesta !== "object" || Array.isArray(state.chaFesta)) state.chaFesta = {};
+  state.chaFesta = {quando: String(state.chaFesta.quando ?? ""), onde: String(state.chaFesta.onde ?? ""),
+    recado: String(state.chaFesta.recado ?? "")};
   if(!state.malaCheck) state.malaCheck = {};
   if(!Array.isArray(state.bolsaExtras)) state.bolsaExtras = [];
   if(!Array.isArray(state.historico))  state.historico = [];
@@ -1022,10 +1032,54 @@ const malaTodos = () => malaSecoes().flatMap(s=>s.itens.map(i=>i.id)).concat(sta
 const malaFeitos = () => malaTodos().filter(x=>state.malaCheck[x]).length;
 
 /* Chá de bebê: o que falta, por faixa de preço, sem o que já foi reservado */
-function sugestoesCha(){
-  const list = faltantes().filter(f=>!state.presentes[f.id]);
-  return FAIXAS.map(f=>({...f, itens: list.filter(i=>i.preco >= f.min && i.preco < f.max)}))
-               .filter(f=>f.itens.length);
+/* A lista do chá é escolhida por você — não é o enxoval inteiro repetido. */
+function listaCha(){
+  return state.chaLista.filter(existe).map(id=>{
+    const it = item(id);
+    return {...it, id, falta: Math.max(1, falta(id)), quem: state.presentes[id] || ""};
+  });
+}
+/* O que faria sentido sugerir: o que ainda falta e ainda não está na lista */
+const candidatosCha = () => faltantes().filter(f=>!state.chaLista.includes(f.id));
+
+/* O texto que vai para o WhatsApp de quem foi convidado */
+function textoCha(){
+  const g = gestacao(), f = state.chaFesta, lista = listaCha();
+  const livres = lista.filter(i=>!i.quem), reservados = lista.filter(i=>i.quem);
+  const L = ["🧸 Chá de bebê"];
+  if(!g.nasceu) L.push(`Estamos na ${g.semana}ª semana — faltam ${g.dias} dias para conhecer ele.`);
+  if(f.quando.trim()) L.push(`Quando: ${f.quando.trim()}`);
+  if(f.onde.trim())   L.push(`Onde: ${f.onde.trim()}`);
+  L.push("", "LISTA DE PRESENTES");
+  FAIXAS.forEach(faixa=>{
+    const itens = livres.filter(i=>i.preco >= faixa.min && i.preco < faixa.max);
+    if(!itens.length) return;
+    L.push("", faixa.label.toUpperCase());
+    itens.forEach(i=>L.push(`• ${i.nome}`
+      + (i.falta > 1 ? ` — ${i.falta} unidades` : "")
+      + (i.tam && i.tam !== "—" ? ` · tam ${i.tam}` : "")
+      + (i.preco ? ` · cerca de ${BRL(i.preco)}` : "")));
+  });
+  if(!livres.length) L.push("", "Tudo já foi reservado — obrigada! 💕");
+  if(reservados.length){
+    L.push("", "JÁ RESERVADOS");
+    reservados.forEach(i=>L.push(`• ${i.nome} — ${i.quem}`));
+  }
+  L.push("", f.recado.trim() || "Me avise qual você escolheu que eu marco na lista, assim ninguém repete 💕");
+  return L.join("\n");
+}
+function compartilharCha(){
+  const texto = textoCha();
+  if(navigator.share){
+    navigator.share({title:"Chá de bebê", text:texto}).catch(()=>{});
+    return;
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(texto)
+      .then(()=>abrirForm("chaTexto", {texto, copiado:true}), ()=>abrirForm("chaTexto", {texto}));
+    return;
+  }
+  abrirForm("chaTexto", {texto});
 }
 
 /* Próximos passos: a fase da gestação mais o que falta de essencial */
@@ -1357,8 +1411,6 @@ function telaEnxoval(){
     ["compras",  "shopping-cart-simple","Compras",   String(faltantes().length), "itens"],
     ["orcamento","coins",               "Orçamento", BRL(valorEmCasa()), "de " + BRL(state.meta)],
     ["kits",     "basket",              "Kits",      `${getKits({mode:"usaveis"}).length}/${KITS.length}`, "dá pra fazer"],
-    ["mala",     "bag",                 "Mala",      `${malaFeitos()}/${malaTodos().length}`, "separados"],
-    ["cha",      "gift",                "Chá de bebê", String(sugestoesCha().reduce((s,x)=>s+x.itens.length,0)), "sugestões"],
     ["favoritos","star",                "Desejos",   String(state.favoritos.length), "itens"],
     ["historico","receipt",             "Histórico", String(state.historico.length), "compras"],
     ["perfil",   "sliders-horizontal",  "Perfil",    PERFIS.find(x=>x[0]===state.perfil)[1], "do enxoval"],
@@ -1510,12 +1562,24 @@ function telaBebe(){
   </div>
   ${desde ? `<div class="dica" style="margin-top:26px">${ic("baby",20)}
     <p>A última mamada foi há ${esc(desde)}.</p></div>` : ""}
+
+  <div style="margin-top:30px">
+    ${kicker("Para a chegada","kicker-n")}
+    <div style="margin-top:12px">
+      ${gradeFerramentas([
+        ["mala","bag",  "Mala da maternidade", `${malaFeitos()}/${malaTodos().length}`, "separados"],
+        ["cha", "gift", "Chá de bebê",         String(state.chaLista.filter(existe).length), "presentes"],
+      ])}
+    </div>
+  </div>
+
   <div style="margin-top:34px; display:flex; gap:14px; align-items:flex-end">
     <img src="${URSO.casal}" alt="" style="width:96px; object-fit:contain; margin-left:-8px; margin-bottom:-4px">
     <div style="flex:1; padding-bottom:6px">
       ${kicker("Depois do parto","kicker-n")}
       <div style="font-size:14px; line-height:1.5; margin-top:6px; color:var(--color-neutral-700)">
-        Mamadas, sono, vacinas e marcos ficam todos aqui, nesta aba.</div>
+        Mamadas, sono, vacinas e marcos ficam aqui — junto da mala da maternidade
+        e da lista do chá de bebê.</div>
     </div>
   </div>
   <div style="height:24px"></div>`;
@@ -1793,44 +1857,82 @@ function telaMala(){
   <div style="height:24px"></div>`;
 }
 
-/* ---------- Chá de bebê ---------- */
+/* ---------- Chá de bebê: uma lista de presentes para mandar pronta ---------- */
 function telaCha(){
-  const grupos = sugestoesCha();
-  const reservados = Object.keys(state.presentes).filter(existe);
+  const lista = listaCha(), f = state.chaFesta;
+  const livres = lista.filter(i=>!i.quem), reservados = lista.filter(i=>i.quem);
+  const custo = livres.reduce((s,i)=>s + i.preco * i.falta, 0);
+  const linhaPresente = (i, res) => `
+    <div class="dupla">
+      <button class="tocavel" data-action="abrir-item" data-id="${i.id}" style="flex:1; min-width:0">
+        <span class="h1" style="display:block; font-size:18px; line-height:1.2">${esc(i.nome)}</span>
+        <span style="display:block; font-size:13px; color:var(--color-neutral-600); margin-top:2px">
+          ${res ? `🎁 ${esc(i.quem)}`
+                : `${i.falta} ${plural(i.falta,"unidade")} · ${BRL(i.preco)} cada${
+                    i.tam && i.tam !== "—" ? ` · tam ${esc(i.tam)}` : ""}`}</span>
+      </button>
+      <span style="display:flex; gap:6px; flex:0 0 auto; align-items:center">
+        <button class="tag tag-outline" data-action="${res ? "liberar" : "reservar"}" data-id="${i.id}">
+          ${res ? "Liberar" : "Reservar"}</button>
+        <button class="tag tag-neutral" data-action="cha-remover" data-id="${i.id}"
+          aria-label="Tirar da lista">✕</button>
+      </span>
+    </div>`;
   return `
   ${voltarAuto()}
   <div class="h1" style="font-size:34px; line-height:1.1; margin-top:14px">Chá<br>de bebê</div>
   <div style="font-size:14px; color:var(--color-neutral-600); margin-top:10px">
-    Sugestões montadas a partir do que realmente falta. Reserve no nome de quem vai presentear.</div>
-  ${grupos.map(g=>`
-    <div style="margin-top:30px">
-      ${kicker(g.label,"kicker-n")}
-      <div class="lista" style="gap:16px; margin-top:12px">
-        ${g.itens.map(i=>`
-          <div class="dupla">
-            <button class="tocavel" data-action="abrir-item" data-id="${i.id}" style="flex:1">
-              <span class="h1" style="display:block; font-size:18px; line-height:1.2">${esc(i.nome)}</span>
-              <span style="display:block; font-size:13px; color:var(--color-neutral-600); margin-top:2px">
-                ${i.falta} ${plural(i.falta,"unidade")} · ${BRL(i.preco)} cada</span>
-            </button>
-            <button class="tag tag-outline" data-action="reservar" data-id="${i.id}">Reservar</button>
-          </div>`).join("")}
+    ${lista.length
+      ? `${lista.length} ${plural(lista.length,"presente")} na lista · ${reservados.length} já ${
+          plural(reservados.length,"reservado")} · ${BRL(custo)} em aberto`
+      : "Escolha os presentes e mande a lista pronta para quem vai ao chá. Quem reservar, você marca aqui."}</div>
+
+  ${lista.length ? `
+    <button class="btn btn-primary btn-block" data-action="cha-compartilhar" style="margin-top:22px">
+      Compartilhar lista</button>
+    <button class="btn btn-secondary btn-block" data-action="cha-ver-texto">Ver o texto</button>
+    <button class="btn btn-ghost btn-block" data-action="cha-escolher">+ Escolher mais presentes</button>
+  ` : `
+    <button class="btn btn-primary btn-block" data-action="cha-escolher" style="margin-top:22px">
+      Escolher presentes</button>
+    <button class="btn btn-secondary btn-block" data-action="cha-auto">Montar com o que falta</button>
+  `}
+
+  ${lista.length ? `
+    <div style="margin-top:32px">
+      ${kicker("O que vai no começo da lista","kicker-n")}
+      <div style="display:grid; gap:12px; margin-top:12px">
+        <div class="field"><label>Quando</label>
+          <input class="input" data-campo-direto="chaFesta.quando" data-sem-render value="${esc(f.quando)}"
+            placeholder="sábado, 12 de abril, às 15h"></div>
+        <div class="field"><label>Onde</label>
+          <input class="input" data-campo-direto="chaFesta.onde" data-sem-render value="${esc(f.onde)}"
+            placeholder="casa da vovó"></div>
+        <div class="field"><label>Recado no fim</label>
+          <input class="input" data-campo-direto="chaFesta.recado" data-sem-render value="${esc(f.recado)}"
+            placeholder="me avise qual você escolheu"></div>
       </div>
-    </div>`).join("")}
-  ${!grupos.length ? `<div class="vazio" style="margin-top:28px">
-    Ou o enxoval já está completo, ou tudo que falta já foi reservado por alguém.</div>` : ""}
+    </div>` : ""}
+
+  ${FAIXAS.map(faixa=>{
+    const itens = livres.filter(i=>i.preco >= faixa.min && i.preco < faixa.max);
+    if(!itens.length) return "";
+    return `<div style="margin-top:30px">
+      ${kicker(faixa.label,"kicker-n")}
+      <div class="lista" style="gap:16px; margin-top:12px">
+        ${itens.map(i=>linhaPresente(i, false)).join("")}
+      </div></div>`;
+  }).join("")}
+
   ${reservados.length ? `<div style="margin-top:34px">
     ${kicker("Já reservados","kicker-n")}
-    <div class="lista" style="gap:14px; margin-top:12px">
-      ${reservados.map(id=>`
-        <div class="dupla">
-          <div>
-            <div class="h1" style="font-size:18px">${esc(item(id).nome)}</div>
-            <div style="font-size:13px; color:var(--color-neutral-600)">🎁 ${esc(state.presentes[id])}</div>
-          </div>
-          <button class="tag tag-outline" data-action="liberar" data-id="${id}">Liberar</button>
-        </div>`).join("")}
+    <div class="lista" style="gap:16px; margin-top:12px">
+      ${reservados.map(i=>linhaPresente(i, true)).join("")}
     </div></div>` : ""}
+
+  ${lista.length ? `<div class="dica" style="margin-top:30px">${ic("gift",20)}
+    <p>Nada sai daqui sozinho: o botão monta o texto e você escolhe para quem mandar.
+    Quando alguém disser que leva um presente, toque em <b>Reservar</b> para ninguém repetir.</p></div>` : ""}
   <div style="height:24px"></div>`;
 }
 
@@ -2147,6 +2249,55 @@ function formPresente(){
     Marque quem ficou de presentear, para ninguém repetir.</div>
   ${campoForm("Nome do convidado","quem","ex: Tia Lu","margin-top:22px")}
   <button class="btn btn-primary btn-block" data-action="salvar-presente" style="margin-top:30px">Reservar</button>
+  <div style="height:24px"></div>`;
+}
+/* Escolher o que entra na lista do chá — só o que ainda falta no enxoval */
+function formChaEscolher(){
+  const cands = candidatosCha(), naLista = state.chaLista.filter(existe);
+  const linha = (i, dentro) => `
+    <button class="check" data-action="cha-toggle" data-id="${i.id}">
+      <span class="ico">${ic(dentro ? "check-circle" : "circle", 20,
+        dentro ? "var(--color-accent)" : "var(--color-neutral-400)")}</span>
+      <span style="flex:1">
+        <span style="display:block; font-size:16px; line-height:1.3">${esc(i.nome)}</span>
+        <span style="display:block; font-size:12px; color:var(--color-neutral-500); margin-top:2px">
+          ${i.falta ? `faltam ${i.falta} · ` : ""}${BRL(i.preco)} cada</span>
+      </span>
+    </button>`;
+  return `
+  <button class="voltar" data-action="fechar-form">← Chá de bebê</button>
+  <div class="h1" style="font-size:30px; line-height:1.1; margin-top:14px">Escolher<br>presentes</div>
+  <div style="font-size:14px; color:var(--color-neutral-600); margin-top:10px">
+    Toque para colocar ou tirar da lista. Aparece só o que ainda falta no seu enxoval.</div>
+  ${naLista.length ? `<div style="margin-top:26px">
+    ${kicker(`Na lista · ${naLista.length}`,"kicker-n")}
+    <div class="lista" style="gap:12px; margin-top:10px">
+      ${listaCha().map(i=>linha(i, true)).join("")}
+    </div></div>` : ""}
+  ${CATS.map(c=>{
+    const itens = cands.filter(i=>i.cat === c);
+    if(!itens.length) return "";
+    return `<div style="margin-top:26px">
+      ${kicker(c,"kicker-n")}
+      <div class="lista" style="gap:12px; margin-top:10px">
+        ${itens.map(i=>linha(i, false)).join("")}
+      </div></div>`;
+  }).join("")}
+  ${!cands.length && !naLista.length ? `<div class="vazio" style="margin-top:26px">
+    Não falta nada no enxoval pelo seu perfil — não há o que pedir de presente.</div>` : ""}
+  <button class="btn btn-primary btn-block" data-action="fechar-form" style="margin-top:30px">Pronto</button>
+  <div style="height:24px"></div>`;
+}
+/* O texto da lista, para copiar quando o aparelho não abre o menu de compartilhar */
+function formChaTexto(){
+  return `
+  <button class="voltar" data-action="fechar-form">← Chá de bebê</button>
+  <div class="h1" style="font-size:30px; line-height:1.1; margin-top:14px">Lista<br>para enviar</div>
+  <div style="font-size:14px; color:var(--color-neutral-600); margin-top:10px">
+    ${form.copiado ? "Copiado! É só colar no WhatsApp." : "Copie e cole no WhatsApp ou onde preferir."}</div>
+  <textarea class="input" id="txtCha" rows="14" readonly
+    style="margin-top:18px; height:340px; font-size:13px; line-height:1.5">${esc(form.texto)}</textarea>
+  <button class="btn btn-primary btn-block" data-action="cha-copiar" style="margin-top:16px">Copiar texto</button>
   <div style="height:24px"></div>`;
 }
 function formPassos(){
@@ -3224,7 +3375,8 @@ const TELAS = {home:telaHome, enxoval:telaEnxoval, gravidez:telaGravidez, bebe:t
 const FORMS = {item:formItem, consulta:formConsulta, compra:formCompra, presente:formPresente,
   passos:formPassos, nome:formNome, parto:formParto, zerar:formZerar,
   diario:formDiario, colo:formColo, sintoma:formSintoma, peso:formPeso, mamada:formMamada,
-  sono:formSono, ciclo:formCiclo, respira:formRespira, restaurar:formRestaurar};
+  sono:formSono, ciclo:formCiclo, respira:formRespira, restaurar:formRestaurar,
+  chaEscolher:formChaEscolher, chaTexto:formChaTexto};
 
 function renderTabs(){
   document.getElementById("tabbar").innerHTML = TABS.map(([id,rotulo,icone])=>`
@@ -3233,7 +3385,13 @@ function renderTabs(){
     </button>`).join("");
 }
 function renderOverlay(){
-  document.getElementById("overlay").innerHTML = formTipo ? `<div class="overlay">${FORMS[formTipo]()}</div>` : "";
+  const caixa = document.getElementById("overlay");
+  const antigo = caixa.firstElementChild;
+  /* marcar item numa lista longa não pode jogar a rolagem de volta para o topo */
+  const manter = antigo && caixa.dataset.tipo === formTipo ? antigo.scrollTop : null;
+  caixa.innerHTML = formTipo ? `<div class="overlay">${FORMS[formTipo]()}</div>` : "";
+  caixa.dataset.tipo = formTipo || "";
+  if(manter != null && caixa.firstElementChild) caixa.firstElementChild.scrollTop = manter;
 }
 function render(){
   renderTabs();
@@ -3400,6 +3558,8 @@ const ACTIONS = {
     ajusteDe(id).tem = tem(id) + qtd;
     state.historico = [...state.historico, {data: new Date().toISOString().slice(0,10), ts:Date.now(), id, qtd, valor}];
     delete state.presentes[id];
+    /* comprado é comprado: sai da lista do chá quando não falta mais nenhum */
+    if(falta(id) <= 0) state.chaLista = state.chaLista.filter(x=>x !== id);
     save(); fecharForm();
   },
   "apagar-hist":(d)=>{
@@ -3414,9 +3574,40 @@ const ACTIONS = {
   "reservar":(d)=>abrirForm("presente", {id:d.id}),
   "salvar-presente":()=>{
     state.presentes[form.id] = String(form.quem || "").trim() || "reservado";
+    if(!state.chaLista.includes(form.id)) state.chaLista = [...state.chaLista, form.id];
     save(); fecharForm();
   },
   "liberar":(d)=>{ delete state.presentes[d.id]; save(); render(); },
+  "cha-escolher":()=>abrirForm("chaEscolher", {}),
+  "cha-toggle":(d)=>{
+    state.chaLista = state.chaLista.includes(d.id)
+      ? state.chaLista.filter(x=>x !== d.id) : [...state.chaLista, d.id];
+    save(); render();
+  },
+  "cha-remover":(d)=>{
+    state.chaLista = state.chaLista.filter(x=>x !== d.id);
+    delete state.presentes[d.id];
+    save(); render();
+  },
+  "cha-auto":()=>{
+    const novos = faltantes().slice(0, 20).map(f=>f.id);
+    state.chaLista = [...new Set([...state.chaLista, ...novos])];
+    save(); render();
+  },
+  "cha-compartilhar":()=>compartilharCha(),
+  "cha-ver-texto":()=>abrirForm("chaTexto", {texto: textoCha()}),
+  "cha-copiar":()=>{
+    const el = document.getElementById("txtCha");
+    if(!el) return;
+    el.readOnly = false; el.select(); el.setSelectionRange(0, el.value.length);
+    const feito = () => { el.readOnly = true; form.copiado = true; render(); };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(el.value).then(feito, ()=>{ try{ document.execCommand("copy"); }catch(e){} feito(); });
+      return;
+    }
+    try{ document.execCommand("copy"); }catch(e){}
+    feito();
+  },
 
   /* --- mala --- */
   "mala":(d)=>{
@@ -3772,7 +3963,12 @@ document.addEventListener("change",(e)=>{
     return;
   }
   /* o re-render só acontece no change: digitar não pode tirar o foco do campo */
-  if(t.dataset && t.dataset.campoDireto){ setDireto(t.dataset.campoDireto, t.value); save(); render(); }
+  if(t.dataset && t.dataset.campoDireto){
+    setDireto(t.dataset.campoDireto, t.value);
+    save();
+    /* campos que não mudam nada em volta: re-renderizar só roubaria o foco do campo seguinte */
+    if(!("semRender" in t.dataset)) render();
+  }
 });
 document.addEventListener("keydown",(e)=>{
   if(e.key === "Escape" && formTipo) fecharForm();
