@@ -6,8 +6,11 @@ maternidade, lista de compras, chá de bebê, consultas, orçamento, nomes e pla
 mais 17 ferramentas de acompanhamento: calculadora gestacional, contador de chutes, diário,
 colo uterino, IMC, checklist de exames, respiração guiada, sintomas, humor, hidratação,
 amamentação, sono, vacinas, marcos do bebê, ciclo, fertilidade e backup.
-Abre com dois cliques, funciona **offline**, sem cadastro e sem servidor — os dados ficam
-só no `localStorage` do próprio aparelho.
+Abre com dois cliques, funciona **offline** e sem cadastro — os dados ficam no `localStorage`
+do próprio aparelho. A **sincronização é opcional**: ligada, ela copia tudo para a sua conta na
+nuvem (para abrir nos seus outros aparelhos) e dá ao chá de bebê uma **página interativa para os
+convidados**, onde eles escolhem o presente, confirmam presença, deixam recadinho e sugerem — e
+tudo isso aparece sozinho no app. Desligada, nada sai do aparelho.
 
 Implementação do design **`Enxoval App.dc.html`** (Claude Design), sobre o design system
 **Broadsheet**, seguindo o padrão de construção de [`ARQUITETURA.md`](ARQUITETURA.md).
@@ -102,7 +105,21 @@ pelos 20 mais urgentes. Você escreve quando e onde é o chá e o recado do fim,
 quantidade, tamanho e preço aproximado — e abre o menu do celular para mandar no WhatsApp.
 Onde o menu de compartilhar não existe, o texto é copiado e aparece na tela para colar.
 Quando alguém disser que leva um presente, **Reservar** guarda o nome e o item passa para
-“já reservados”, para ninguém repetir. Nada sai do aparelho sozinho: não há servidor nem conta.
+“já reservados”, para ninguém repetir.
+
+Com a **sincronização ligada** (veja abaixo), o botão passa a mandar um **link** em vez de só o
+texto. Quem abre o link cai numa página — o arquivo [`cha.html`](cha.html) — onde ele mesmo:
+
+- **escolhe o presente** (“Eu levo”), e o item some da lista dos outros na mesma hora;
+- **confirma presença**, dizendo quantas pessoas vão;
+- **deixa um recadinho** para você;
+- **sugere um presente** que não está na lista.
+
+Tudo isso chega no app sozinho: as reservas viram “já reservados”, as confirmações viram uma
+lista de quem vai, os recadinhos aparecem junto de cada nome e as sugestões esperam a sua
+aprovação — aprovada, ela aparece na página para os outros convidados verem. Você ainda pode
+**fechar a lista** (a página avisa que ela foi fechada) e **trocar o link**, se ele parar em
+lugar que você não queria. A página mostra só o chá: o resto do app nunca vai junto no link.
 
 ### 🩺 Saúde
 Cartões de exames, sintomas, humor, hidratação e plano de parto, e embaixo a agenda de
@@ -153,7 +170,7 @@ preciso caçar nada dentro do Mais.
 | **Ciclo menstrual** | Registro de cada menstruação, duração média dos últimos ciclos, dia do ciclo e próxima data prevista |
 | **Calculadora de fertilidade** | Ovulação, janela fértil dos próximos três ciclos e a data prevista do parto caso a gravidez aconteça agora |
 | **Nomes** | Favoritos de vocês dois — nome, significado e anotação, tudo editável |
-| **Backup e sincronização** | Baixa um arquivo `.json` com tudo, restaura de um arquivo e gera um código de transferência para colar em outro celular. Nada sai do aparelho: não há servidor nem conta |
+| **Backup e sincronização** | Liga (ou desliga) a sincronização na nuvem, mostra o link do chá e o código para conectar outro aparelho — e continua baixando o arquivo `.json` de backup, que funciona mesmo com a nuvem desligada |
 
 ### Nomes e plano de parto são seus
 As duas listas começam com uma sugestão, mas nada ali é fixo. Em **Nomes**, o coração
@@ -189,18 +206,51 @@ por WhatsApp ou e-mail que ele abre inteiro, com as imagens.
 
 ---
 
+## Sincronização e a página do chá
+
+A sincronização começa **desligada** e é ligada em **Mais → Backup e sincronização** (ou pelo
+próprio chá de bebê). Ligar cria uma conta sem cadastro: o app sorteia um `perfil` e uma `chave`
+secreta, guardados só no aparelho, e o servidor guarda apenas o *hash* dessa chave. Para usar em
+outro celular, copie o **código de transferência** e cole lá.
+
+**O que sobe:** o mesmo JSON do backup. A credencial e o que os convidados escreveram nunca
+sobem junto. Quem gravou por último vence — é uma pessoa em um ou dois aparelhos. O app continua
+funcionando inteiro sem internet: a nuvem é uma cópia, nunca a fonte.
+
+**Como o servidor é montado** (tudo em [`supabase/`](supabase)):
+
+| | O que faz |
+|---|---|
+| [`migracao.sql`](supabase/migracao.sql) | As cinco tabelas (`nb_perfis`, `nb_chas`, `nb_reservas`, `nb_presencas`, `nb_sugestoes`) |
+| [`functions/nb-sync`](supabase/functions/nb-sync/index.ts) | A API do app, autenticada por perfil + chave |
+| [`functions/nb-cha`](supabase/functions/nb-cha/index.ts) | A API pública da página dos convidados, autenticada só pelo código do link |
+
+As tabelas ficam com RLS ligado e **sem nenhuma policy**, e sem permissão para as chaves
+públicas do Supabase: ninguém alcança o banco direto pela API REST — só as duas funções, que
+conferem a credencial de cada chamada. Por isso o painel do Supabase mostra cinco avisos
+“RLS enabled, no policy”: aqui isso é o desenho, não um esquecimento. A função dos convidados
+nunca lê a tabela de perfis, então o link do chá não dá acesso a nada do resto do app.
+
+**Vale saber:** quem tiver o link do chá vê a lista, os nomes de quem reservou e os recadinhos —
+é um link secreto, não uma página protegida por senha. Se ele parar onde não devia, **Trocar o
+link** derruba o antigo na hora.
+
+---
+
 ## Arquivos
 
 ```
 index.html              ← o app inteiro (CSS + HTML + JS, fonte, ícones e ilustrações embutidos)
+cha.html                ← a página dos convidados do chá de bebê
 manifest.webmanifest    ← nome, ícones, cores, display standalone
 sw.js                   ← service worker (cache offline)
 icon-*-v2.png           ← ícones do PWA, comuns e maskable
+supabase/               ← o banco e as duas edge functions da sincronização
 ARQUITETURA.md          ← o padrão de construção seguido aqui
 ```
 
 > Ao alterar qualquer arquivo, incremente a versão do cache em `sw.js`
-> (`const CACHE = "nosso-bebe-v16"`), senão quem já usa o app fica preso na versão antiga.
+> (`const CACHE = "nosso-bebe-v17"`), senão quem já usa o app fica preso na versão antiga.
 
 ## Nota
 

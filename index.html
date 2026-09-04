@@ -723,7 +723,13 @@ function estadoInicial(){
     favoritos:[],      /* ids na lista de desejos */
     presentes:{},      /* id -> quem vai presentear (chá de bebê) */
     chaLista:[],       /* ids escolhidos para a lista de presentes do chá */
-    chaFesta:{quando:"", onde:"", recado:""},   /* o que vai no texto compartilhado */
+    chaFesta:{quando:"", onde:"", recado:""},   /* o que vai no convite */
+    chaTitulo:"", chaAberto:true,               /* título e a chave que liga/desliga a página */
+    /* a conta na nuvem: id público, chave secreta e o código que vai no link.
+       Fica só neste aparelho — nunca é enviada junto com o resto dos dados. */
+    nuvem:{perfil:"", chave:"", codigo:"", ligado:false, ultimo:0, aviso:""},
+    /* o que os convidados preencheram, espelhado do servidor */
+    chaRemoto:{reservas:[], presencas:[], sugestoes:[]},
     malaCheck:{},      /* id -> true quando já está dentro da mala */
     bolsaExtras:[],    /* coisas soltas que você acrescentou à mala */
     historico:[],      /* [{data,ts,id,qtd,valor}] */
@@ -760,8 +766,8 @@ let state = estadoInicial();
 
 /* Tudo que vai para o localStorage — e para o arquivo de backup */
 const SALVAR = ["tela","catAberta","itens","extras","perfil","estacao","bebes","dpp","meta",
-  "favoritos","presentes","chaLista","chaFesta","malaCheck","bolsaExtras","historico","agenda",
-  "feitos","nomesLista",
+  "favoritos","presentes","chaLista","chaFesta","chaTitulo","chaAberto","nuvem","chaRemoto",
+  "malaCheck","bolsaExtras","historico","agenda","feitos","nomesLista",
   "nomes","partoLista","calc","chuteAtivo","chutesHist","diario","colo","respiros","sintomas",
   "corpo","pesos","exames","vacinas","marcos","nascimento","mamadaAtiva","mamadas","sonoAtivo",
   "sono","agua","ciclos","cicloCfg","humor"];
@@ -785,6 +791,16 @@ function load(){
   if(!state.chaFesta || typeof state.chaFesta !== "object" || Array.isArray(state.chaFesta)) state.chaFesta = {};
   state.chaFesta = {quando: String(state.chaFesta.quando ?? ""), onde: String(state.chaFesta.onde ?? ""),
     recado: String(state.chaFesta.recado ?? "")};
+  state.chaTitulo = String(state.chaTitulo ?? "");
+  state.chaAberto = state.chaAberto !== false;
+  const n = (state.nuvem && typeof state.nuvem === "object") ? state.nuvem : {};
+  state.nuvem = {perfil: String(n.perfil ?? ""), chave: String(n.chave ?? ""),
+    codigo: String(n.codigo ?? ""), ligado: !!n.ligado && !!n.perfil,
+    ultimo: Number(n.ultimo) || 0, aviso: ""};
+  const cr = (state.chaRemoto && typeof state.chaRemoto === "object") ? state.chaRemoto : {};
+  state.chaRemoto = {reservas: Array.isArray(cr.reservas) ? cr.reservas : [],
+    presencas: Array.isArray(cr.presencas) ? cr.presencas : [],
+    sugestoes: Array.isArray(cr.sugestoes) ? cr.sugestoes : []};
   if(!state.malaCheck) state.malaCheck = {};
   if(!Array.isArray(state.bolsaExtras)) state.bolsaExtras = [];
   if(!Array.isArray(state.historico))  state.historico = [];
@@ -911,6 +927,156 @@ function save(){
   const dados = {};
   SALVAR.forEach(k=>{ dados[k] = state[k]; });
   try{ localStorage.setItem(CHAVE, JSON.stringify(dados)); }catch(e){}
+  nuvemAgendar();
+}
+
+/* ==================================================================
+   CAMADA 2.5 — NUVEM (sincronização entre aparelhos e o chá dos convidados)
+
+   O app continua funcionando inteiro sem internet: a nuvem é uma cópia,
+   nunca a fonte. O que sobe é o mesmo JSON do backup, menos a credencial
+   e menos o que os convidados escreveram — isso é do servidor.
+   ================================================================== */
+const NUVEM_API = "https://zhivwbnnupjrdizmnpgy.supabase.co/functions/v1/nb-sync";
+const NUVEM_PAGINA = "cha.html";
+const NAO_SOBE = ["nuvem", "chaRemoto", "tela", "catAberta"];
+
+let nuvemTimer = null, nuvemOcupada = false, nuvemPendente = false;
+
+const nuvemLigada = () => !!(state.nuvem.ligado && state.nuvem.perfil && state.nuvem.chave);
+const nuvemLink = () => state.nuvem.codigo
+  ? new URL(NUVEM_PAGINA + "?c=" + state.nuvem.codigo, location.href).href : "";
+
+async function nuvemChamar(corpo){
+  const r = await fetch(NUVEM_API, {
+    method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(corpo),
+  });
+  const dados = await r.json().catch(()=>({}));
+  if(!r.ok) throw Object.assign(new Error(dados.erro || "erro"), {erro: dados.erro, status: r.status});
+  return dados;
+}
+const nuvemCredencial = () => ({perfil: state.nuvem.perfil, chave: state.nuvem.chave});
+
+/* O estado que vai para o servidor: tudo menos a credencial e o que é dos convidados */
+function nuvemPacote(){
+  const dados = {};
+  SALVAR.filter(k=>!NAO_SOBE.includes(k)).forEach(k=>{ dados[k] = state[k]; });
+  return dados;
+}
+/* A parte pública: o que a página do chá mostra */
+function nuvemPacoteCha(){
+  const f = state.chaFesta;
+  return {
+    titulo: state.chaTitulo || "Chá de bebê",
+    quando: f.quando, onde: f.onde, recado: f.recado,
+    aberto: state.chaAberto !== false,
+    presentes: listaCha().map(i=>({id:i.id, nome:i.nome, qtd:i.falta, preco:i.preco,
+      tam: i.tam === "—" ? "" : i.tam, cat:i.cat})),
+  };
+}
+
+/* Liga a sincronização: cria o perfil e sobe o que já existe neste aparelho */
+async function nuvemLigar(){
+  const r = await nuvemChamar({acao:"criar"});
+  state.nuvem = {perfil:r.perfil, chave:r.chave, codigo:r.codigo, ligado:true, ultimo:0, aviso:""};
+  save();
+  await nuvemEnviar(true);
+}
+
+/* Sobe o estado do app e, junto, os dados do chá */
+async function nuvemEnviar(comCha){
+  if(!nuvemLigada()) return;
+  const r = await nuvemChamar({acao:"empurrar", ...nuvemCredencial(), dados: nuvemPacote()});
+  state.nuvem.ultimo = Date.parse(r.atualizado_em) || Date.now();
+  if(comCha) await nuvemChamar({acao:"cha", ...nuvemCredencial(), ...nuvemPacoteCha()});
+  state.nuvem.aviso = "";
+  guardarLocal();
+}
+
+/* Traz o que mudou no servidor — inclusive o que os convidados preencheram */
+async function nuvemBuscar(){
+  if(!nuvemLigada()) return;
+  const r = await nuvemChamar({acao:"puxar", ...nuvemCredencial()});
+  const remoto = Date.parse(r.atualizado_em) || 0;
+
+  /* estado do app: só adota o do servidor se ele for mais novo que a última
+     vez que ESTE aparelho escreveu — quem gravou por último vence */
+  if(remoto > (state.nuvem.ultimo || 0) && r.dados && Object.keys(r.dados).length){
+    const guardado = {nuvem: state.nuvem, chaRemoto: state.chaRemoto, tela: state.tela,
+      catAberta: state.catAberta};
+    SALVAR.filter(k=>!NAO_SOBE.includes(k)).forEach(k=>{
+      if(r.dados[k] !== undefined) state[k] = r.dados[k];
+    });
+    Object.assign(state, guardado);
+    state.nuvem.ultimo = remoto;
+  }
+  /* o chá é sempre do servidor: são os convidados que escrevem lá */
+  state.chaRemoto = {reservas: r.reservas || [], presencas: r.presencas || [], sugestoes: r.sugestoes || []};
+  state.presentes = Object.fromEntries(state.chaRemoto.reservas.map(x=>[x.item, x.quem]));
+  const listaServidor = (r.cha && r.cha.presentes) || [];
+  if(r.cha){
+    if(r.cha.codigo) state.nuvem.codigo = r.cha.codigo;
+    state.chaAberto = r.cha.aberto !== false;
+    /* presente reservado por convidado que não está mais na lista local volta para ela */
+    listaServidor.forEach(p=>{ if(state.presentes[p.id] && !state.chaLista.includes(p.id))
+      state.chaLista = [...state.chaLista, p.id]; });
+  }
+  state.nuvem.aviso = "";
+  guardarLocal();
+}
+
+/* Grava no aparelho sem disparar outra subida (evita o vaivém) */
+function guardarLocal(){
+  const dados = {};
+  SALVAR.forEach(k=>{ dados[k] = state[k]; });
+  try{ localStorage.setItem(CHAVE, JSON.stringify(dados)); }catch(e){}
+}
+
+/* Cada save() marca que há coisa nova para subir; a subida sai alguns
+   segundos depois, para digitar não virar uma chamada por tecla. */
+function nuvemAgendar(){
+  if(!nuvemLigada()) return;
+  nuvemPendente = true;
+  clearTimeout(nuvemTimer);
+  nuvemTimer = setTimeout(()=>nuvemRodar(true), 2500);
+}
+async function nuvemRodar(comCha){
+  if(!nuvemLigada() || nuvemOcupada) return;
+  nuvemOcupada = true;
+  try{
+    if(nuvemPendente){ nuvemPendente = false; await nuvemEnviar(comCha); }
+    else await nuvemBuscar();
+    if(state.tela === "cha" || state.tela === "backup") render();
+  }catch(e){
+    nuvemPendente = true;                       /* não perdeu: tenta na próxima */
+    state.nuvem.aviso = e && e.erro === "credencial"
+      ? "As credenciais não foram aceitas. Ligue a sincronização de novo."
+      : "Sem conexão com a nuvem — os dados continuam salvos neste aparelho.";
+    guardarLocal();
+  }finally{
+    nuvemOcupada = false;
+  }
+}
+/* Manda uma ação pontual para a nuvem sem travar a tela. Se falhar, a
+   próxima sincronização conserta: o estado local já está gravado. */
+function nuvemSeLigada(corpo, aoResponder){
+  if(!nuvemLigada()) return;
+  nuvemChamar({...nuvemCredencial(), ...corpo})
+    .then(r=>{ if(aoResponder) aoResponder(r); })
+    .catch(()=>{ nuvemPendente = true; });
+}
+/* Um aviso curto na tela enquanto a nuvem responde */
+function nuvemOcupadaTela(texto){
+  state.nuvem.aviso = texto;
+  render();
+}
+
+/* Sincroniza ao abrir o app e sempre que ele volta para a frente */
+function nuvemIniciar(){
+  if(!nuvemLigada()) return;
+  nuvemRodar(true);
+  document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) nuvemRodar(false); });
+  setInterval(()=>{ if(!document.hidden) nuvemRodar(false); }, 60000);
 }
 
 /* ==================================================================
@@ -1042,14 +1208,18 @@ function listaCha(){
 /* O que faria sentido sugerir: o que ainda falta e ainda não está na lista */
 const candidatosCha = () => faltantes().filter(f=>!state.chaLista.includes(f.id));
 
-/* O texto que vai para o WhatsApp de quem foi convidado */
+/* O texto que vai para o WhatsApp de quem foi convidado. Com a sincronização
+   ligada ele começa pelo link — é lá que o convidado escolhe o presente. */
 function textoCha(){
   const g = gestacao(), f = state.chaFesta, lista = listaCha();
   const livres = lista.filter(i=>!i.quem), reservados = lista.filter(i=>i.quem);
-  const L = ["🧸 Chá de bebê"];
+  const L = ["🧸 " + (state.chaTitulo.trim() || "Chá de bebê")];
   if(!g.nasceu) L.push(`Estamos na ${g.semana}ª semana — faltam ${g.dias} dias para conhecer ele.`);
   if(f.quando.trim()) L.push(`Quando: ${f.quando.trim()}`);
   if(f.onde.trim())   L.push(`Onde: ${f.onde.trim()}`);
+  if(nuvemLigada() && nuvemLink()){
+    L.push("", "Escolha o seu presente e confirme presença aqui:", nuvemLink());
+  }
   L.push("", "LISTA DE PRESENTES");
   FAIXAS.forEach(faixa=>{
     const itens = livres.filter(i=>i.preco >= faixa.min && i.preco < faixa.max);
@@ -1065,7 +1235,9 @@ function textoCha(){
     L.push("", "JÁ RESERVADOS");
     reservados.forEach(i=>L.push(`• ${i.nome} — ${i.quem}`));
   }
-  L.push("", f.recado.trim() || "Me avise qual você escolheu que eu marco na lista, assim ninguém repete 💕");
+  L.push("", f.recado.trim() || (nuvemLigada()
+    ? "Toque no link e escolha o seu — assim ninguém repete 💕"
+    : "Me avise qual você escolheu que eu marco na lista, assim ninguém repete 💕"));
   return L.join("\n");
 }
 function compartilharCha(){
@@ -1860,15 +2032,18 @@ function telaMala(){
 
 /* ---------- Chá de bebê: uma lista de presentes para mandar pronta ---------- */
 function telaCha(){
-  const lista = listaCha(), f = state.chaFesta;
+  const lista = listaCha(), f = state.chaFesta, online = nuvemLigada();
   const livres = lista.filter(i=>!i.quem), reservados = lista.filter(i=>i.quem);
   const custo = livres.reduce((s,i)=>s + i.preco * i.falta, 0);
+  const sugestoes = state.chaRemoto.sugestoes, presencas = state.chaRemoto.presencas;
+  const vao = presencas.filter(p=>p.vai).reduce((s,p)=>s + (p.pessoas || 1), 0);
+  const recadoDe = id => (state.chaRemoto.reservas.find(r=>r.item === id) || {}).recado || "";
   const linhaPresente = (i, res) => `
     <div class="dupla">
       <button class="tocavel" data-action="abrir-item" data-id="${i.id}" style="flex:1; min-width:0">
         <span class="h1" style="display:block; font-size:18px; line-height:1.2">${esc(i.nome)}</span>
         <span style="display:block; font-size:13px; color:var(--color-neutral-600); margin-top:2px">
-          ${res ? `🎁 ${esc(i.quem)}`
+          ${res ? `🎁 ${esc(i.quem)}${recadoDe(i.id) ? ` · “${esc(recadoDe(i.id))}”` : ""}`
                 : `${i.falta} ${plural(i.falta,"unidade")} · ${BRL(i.preco)} cada${
                     i.tam && i.tam !== "—" ? ` · tam ${esc(i.tam)}` : ""}`}</span>
       </button>
@@ -1890,7 +2065,11 @@ function telaCha(){
 
   ${lista.length ? `
     <button class="btn btn-primary btn-block" data-action="cha-compartilhar" style="margin-top:22px">
-      Compartilhar lista</button>
+      ${online ? "Compartilhar a lista" : "Compartilhar o texto"}</button>
+    ${online ? `<button class="btn btn-secondary btn-block" data-action="cha-abrir-pagina">
+        Ver a página dos convidados</button>
+      <button class="btn btn-secondary btn-block" data-action="nuvem-sincronizar">
+        Atualizar as respostas</button>` : ""}
     <button class="btn btn-secondary btn-block" data-action="cha-ver-texto">Ver o texto</button>
     <button class="btn btn-ghost btn-block" data-action="cha-escolher">+ Escolher mais presentes</button>
   ` : `
@@ -1899,21 +2078,77 @@ function telaCha(){
     <button class="btn btn-secondary btn-block" data-action="cha-auto">Montar com o que falta</button>
   `}
 
+  ${lista.length && !online ? `<div class="dica" style="margin-top:22px">${ic("cloud-arrow",20)}
+    <div>
+      <div class="h1" style="font-size:15px">Deixe a lista interativa</div>
+      <p style="margin-top:4px">Ligando a sincronização, o link abre uma página onde o convidado
+      escolhe o presente, confirma presença e deixa recadinho — e tudo isso aparece aqui sozinho.</p>
+      <button class="btn btn-primary btn-block" data-action="nuvem-ligar" style="margin-top:10px">
+        Ligar sincronização</button>
+    </div></div>` : ""}
+
   ${lista.length ? `
     <div style="margin-top:32px">
-      ${kicker("O que vai no começo da lista","kicker-n")}
+      ${kicker("O que os convidados veem","kicker-n")}
       <div style="display:grid; gap:12px; margin-top:12px">
+        <div class="field"><label>Título</label>
+          <input class="input" data-campo-direto="chaTitulo" data-sem-render value="${esc(state.chaTitulo)}"
+            placeholder="Chá da Maria"></div>
         <div class="field"><label>Quando</label>
           <input class="input" data-campo-direto="chaFesta.quando" data-sem-render value="${esc(f.quando)}"
             placeholder="sábado, 12 de abril, às 15h"></div>
         <div class="field"><label>Onde</label>
           <input class="input" data-campo-direto="chaFesta.onde" data-sem-render value="${esc(f.onde)}"
             placeholder="casa da vovó"></div>
-        <div class="field"><label>Recado no fim</label>
+        <div class="field"><label>Recado</label>
           <input class="input" data-campo-direto="chaFesta.recado" data-sem-render value="${esc(f.recado)}"
             placeholder="me avise qual você escolheu"></div>
       </div>
+      ${online ? `<div class="chips" style="margin-top:12px">
+        <button class="tag ${state.chaAberto ? "tag-accent" : "tag-outline"}" data-action="cha-abrir">
+          ${state.chaAberto ? "Lista aberta" : "Lista fechada"}</button>
+        <button class="tag tag-outline" data-action="cha-novo-codigo">Trocar o link</button>
+      </div>` : ""}
     </div>` : ""}
+
+  ${online && sugestoes.length ? `<div style="margin-top:32px">
+    ${kicker(`Sugestões dos convidados · ${sugestoes.length}`,"kicker-2")}
+    <div class="lista" style="gap:14px; margin-top:12px">
+      ${sugestoes.map(s=>`
+        <div class="dupla">
+          <div style="flex:1; min-width:0">
+            <div class="h1" style="font-size:17px; line-height:1.2">${esc(s.oque)}</div>
+            <div style="font-size:13px; color:var(--color-neutral-600); margin-top:2px">
+              sugerido por ${esc(s.quem)}${s.aprovada ? " · na lista dos convidados" : ""}</div>
+          </div>
+          <span style="display:flex; gap:6px; flex:0 0 auto; align-items:center">
+            ${s.aprovada ? "" : `<button class="tag tag-outline" data-action="cha-aprovar" data-id="${s.id}">
+              Aprovar</button>`}
+            <button class="tag tag-neutral" data-action="cha-apagar-sugestao" data-id="${s.id}"
+              aria-label="Apagar sugestão">✕</button>
+          </span>
+        </div>`).join("")}
+    </div>
+    <div class="mini" style="margin-top:10px">Aprovar mostra a sugestão na página, para os outros
+      convidados verem que alguém já pensou nisso.</div>
+  </div>` : ""}
+
+  ${online && presencas.length ? `<div style="margin-top:32px">
+    ${kicker(`Confirmações · ${vao} ${plural(vao,"pessoa")}`,"kicker-2")}
+    <div class="lista" style="gap:14px; margin-top:12px">
+      ${presencas.map(p=>`
+        <div class="dupla">
+          <div style="flex:1; min-width:0">
+            <div class="h1" style="font-size:17px; line-height:1.2">${esc(p.quem)}</div>
+            <div style="font-size:13px; color:var(--color-neutral-600); margin-top:2px">
+              ${p.vai ? `${p.pessoas} ${plural(p.pessoas,"pessoa")}` : "não vai poder ir"}${
+                p.recado ? ` · “${esc(p.recado)}”` : ""}</div>
+          </div>
+          <button class="tag tag-neutral" data-action="cha-apagar-presenca" data-id="${p.id}"
+            aria-label="Apagar confirmação">✕</button>
+        </div>`).join("")}
+    </div>
+  </div>` : ""}
 
   ${FAIXAS.map(faixa=>{
     const itens = livres.filter(i=>i.preco >= faixa.min && i.preco < faixa.max);
@@ -1932,8 +2167,11 @@ function telaCha(){
     </div></div>` : ""}
 
   ${lista.length ? `<div class="dica" style="margin-top:30px">${ic("gift",20)}
-    <p>Nada sai daqui sozinho: o botão monta o texto e você escolhe para quem mandar.
-    Quando alguém disser que leva um presente, toque em <b>Reservar</b> para ninguém repetir.</p></div>` : ""}
+    <p>${online
+      ? `Quem abre o link escolhe o presente, confirma presença e deixa recadinho — e aparece aqui
+         sozinho. Só o chá fica visível: o resto do app não vai junto no link.`
+      : `Nada sai daqui sozinho: o botão monta o texto e você escolhe para quem mandar. Quando
+         alguém disser que leva um presente, toque em <b>Reservar</b> para ninguém repetir.`}</p></div>` : ""}
   <div style="height:24px"></div>`;
 }
 
@@ -3161,7 +3399,53 @@ function telaBackup(){
     ["compras no histórico", state.historico.length],
   ].filter(c=>c[1]);
   return `
-  ${capa("Backup e<br>sincronização","Tudo o que você registra fica só neste aparelho — nada sobe para nenhum servidor. Para levar os dados para outro celular, use o arquivo ou o código abaixo.")}
+  ${capa("Backup e<br>sincronização", nuvemLigada()
+    ? "Este aparelho está sincronizado: os seus dados vão para a nuvem e voltam nos outros aparelhos, e o link do chá funciona para os convidados."
+    : "Hoje tudo fica só neste aparelho. Ligando a sincronização, os dados aparecem nos seus outros aparelhos e o chá de bebê ganha uma página para os convidados.")}
+
+  <div style="margin-top:26px">
+    ${kicker("Sincronização","kicker-n")}
+    ${state.nuvem.aviso ? `<div class="dica" style="margin-top:12px">${ic("cloud-arrow",20)}
+      <p>${esc(state.nuvem.aviso)}</p></div>` : ""}
+    ${nuvemLigada() ? `
+      <div style="font-size:14px; color:var(--color-neutral-700); margin-top:10px">
+        ${state.nuvem.ultimo
+          ? `Última subida em ${dataBR(new Date(state.nuvem.ultimo).toISOString().slice(0,10))} às ${
+              new Date(state.nuvem.ultimo).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}.`
+          : "Ainda não subiu nada."}
+        O app continua funcionando sem internet — a nuvem é uma cópia, não a fonte.</div>
+      <button class="btn btn-primary btn-block" data-action="nuvem-sincronizar" style="margin-top:12px">
+        Sincronizar agora</button>
+
+      <div style="margin-top:22px">
+        ${kicker("Link do chá de bebê","kicker-n")}
+        <textarea class="input" readonly rows="2" style="margin-top:10px; font-size:12px; resize:none"
+          >${esc(nuvemLink())}</textarea>
+        <button class="btn btn-secondary btn-block" data-action="nuvem-copiar-link">Copiar link</button>
+      </div>
+
+      <div style="margin-top:22px">
+        ${kicker("Conectar outro aparelho","kicker-n")}
+        <div style="font-size:14px; color:var(--color-neutral-700); margin-top:8px">
+          Cole este código no outro celular, em Backup e sincronização. Ele dá acesso a tudo —
+          mande só para você mesma.</div>
+        <textarea class="input" readonly rows="3" style="margin-top:10px; font-size:11px; resize:none"
+          >${esc(state.nuvem.perfil + "|" + state.nuvem.chave + "|" + state.nuvem.codigo)}</textarea>
+      </div>
+
+      <button class="btn btn-ghost btn-block" data-action="nuvem-desligar" style="margin-top:18px">
+        Desligar a sincronização</button>
+    ` : `
+      <button class="btn btn-primary btn-block" data-action="nuvem-ligar" style="margin-top:12px">
+        Ligar sincronização</button>
+      <div style="margin-top:18px">
+        ${kicker("Já ligou em outro aparelho?","kicker-n")}
+        <textarea class="input" id="nuvemEntrada" rows="3" placeholder="Cole aqui o código do outro aparelho"
+          style="margin-top:10px; font-size:11px; resize:none"></textarea>
+        <button class="btn btn-secondary btn-block" data-action="nuvem-conectar">Conectar este aparelho</button>
+      </div>
+    `}
+  </div>
 
   ${contagens.length ? `<div style="margin-top:26px">
     ${kicker("O que existe hoje","kicker-n")}
@@ -3627,11 +3911,18 @@ const ACTIONS = {
   /* --- chá de bebê --- */
   "reservar":(d)=>abrirForm("presente", {id:d.id}),
   "salvar-presente":()=>{
-    state.presentes[form.id] = String(form.quem || "").trim() || "reservado";
-    if(!state.chaLista.includes(form.id)) state.chaLista = [...state.chaLista, form.id];
+    const id = form.id, quem = String(form.quem || "").trim() || "reservado";
+    state.presentes[id] = quem;
+    if(!state.chaLista.includes(id)) state.chaLista = [...state.chaLista, id];
     save(); fecharForm();
+    /* a reserva feita aqui tem que sumir da página dos convidados também */
+    nuvemSeLigada({acao:"reservar", item:id, quem});
   },
-  "liberar":(d)=>{ delete state.presentes[d.id]; save(); render(); },
+  "liberar":(d)=>{
+    delete state.presentes[d.id];
+    save(); render();
+    nuvemSeLigada({acao:"liberar", item:d.id});
+  },
   "cha-escolher":()=>abrirForm("chaEscolher", {}),
   "cha-toggle":(d)=>{
     state.chaLista = state.chaLista.includes(d.id)
@@ -3642,6 +3933,7 @@ const ACTIONS = {
     state.chaLista = state.chaLista.filter(x=>x !== d.id);
     delete state.presentes[d.id];
     save(); render();
+    nuvemSeLigada({acao:"liberar", item:d.id});
   },
   "cha-auto":()=>{
     const novos = faltantes().slice(0, 20).map(f=>f.id);
@@ -3649,6 +3941,71 @@ const ACTIONS = {
     save(); render();
   },
   "cha-compartilhar":()=>compartilharCha(),
+  "cha-abrir-pagina":()=>{ const l = nuvemLink(); if(l) window.open(l, "_blank", "noopener"); },
+  "cha-abrir":()=>{
+    state.chaAberto = !state.chaAberto;
+    save(); render();
+    nuvemSeLigada({acao:"cha", ...nuvemPacoteCha()});
+  },
+  "cha-novo-codigo":()=>{
+    if(!confirm("Trocar o link derruba o link antigo: quem já recebeu vai precisar do novo. Trocar?")) return;
+    nuvemSeLigada({acao:"novo-codigo"}, r=>{ state.nuvem.codigo = r.codigo; guardarLocal(); render(); });
+  },
+  "cha-aprovar":(d)=>{
+    const s = state.chaRemoto.sugestoes.find(x=>x.id === d.id);
+    if(s) s.aprovada = true;
+    save(); render();
+    nuvemSeLigada({acao:"sugestao", id:d.id, aprovada:true});
+  },
+  "cha-apagar-sugestao":(d)=>{
+    state.chaRemoto.sugestoes = state.chaRemoto.sugestoes.filter(x=>x.id !== d.id);
+    save(); render();
+    nuvemSeLigada({acao:"sugestao", id:d.id, apagar:true});
+  },
+  "cha-apagar-presenca":(d)=>{
+    state.chaRemoto.presencas = state.chaRemoto.presencas.filter(x=>x.id !== d.id);
+    save(); render();
+    nuvemSeLigada({acao:"presenca", id:d.id});
+  },
+
+  /* --- sincronização --- */
+  "nuvem-ligar":()=>{
+    if(nuvemLigada()) return;
+    nuvemOcupadaTela("Ligando…");
+    nuvemLigar()
+      .then(()=>{ render(); alert("Pronto! A lista do chá agora tem um link para os convidados."); })
+      .catch(()=>{ state.nuvem.aviso = "Não consegui ligar agora. Tente com internet."; render(); });
+  },
+  "nuvem-sincronizar":()=>{
+    nuvemOcupadaTela("Sincronizando…");
+    nuvemPendente = true;
+    nuvemRodar(true).then(()=>nuvemBuscar()).then(render).catch(render);
+  },
+  "nuvem-desligar":()=>{
+    if(!confirm("Desligar tira este aparelho da nuvem e o link do chá para de funcionar. Os dados continuam aqui. Desligar?")) return;
+    nuvemSeLigada({acao:"apagar-tudo"});
+    state.nuvem = {perfil:"", chave:"", codigo:"", ligado:false, ultimo:0, aviso:""};
+    state.chaRemoto = {reservas:[], presencas:[], sugestoes:[]};
+    save(); render();
+  },
+  "nuvem-copiar-link":()=>{
+    const l = nuvemLink();
+    if(l && navigator.clipboard) navigator.clipboard.writeText(l).then(()=>alert("Link copiado!"), ()=>{});
+  },
+  "nuvem-conectar":()=>{
+    const el = document.getElementById("nuvemEntrada");
+    const cru = (el ? el.value : "").trim();
+    const partes = cru.split("|");
+    if(partes.length < 2) return alert("Esse código não parece o de outro aparelho.");
+    state.nuvem = {perfil:partes[0].trim(), chave:partes[1].trim(), codigo:(partes[2] || "").trim(),
+      ligado:true, ultimo:0, aviso:""};
+    guardarLocal();
+    nuvemBuscar().then(()=>{ render(); alert("Aparelho conectado — os dados vieram da nuvem."); })
+      .catch(()=>{
+        state.nuvem = {perfil:"", chave:"", codigo:"", ligado:false, ultimo:0, aviso:"Código não aceito."};
+        guardarLocal(); render();
+      });
+  },
   "cha-ver-texto":()=>abrirForm("chaTexto", {texto: textoCha()}),
   "cha-copiar":()=>{
     const el = document.getElementById("txtCha");
@@ -3995,7 +4352,12 @@ function setDireto(k, v){
   if(k === "humor.nota"){ const h = humorDe(isoHoje()); if(h) h.nota = v; return; }
   if(k === "agua.meta"){ const n = num(v); state.agua.meta = n > 0 ? Math.round(n) : 0; return; }
   const [a, b] = k.split(".");
-  if(b && state[a] && typeof state[a] === "object") state[a][b] = v;
+  if(b){
+    if(state[a] && typeof state[a] === "object") state[a][b] = v;
+    return;
+  }
+  /* campo de texto simples, sem ponto no nome — como o título do chá */
+  if(typeof state[a] === "string") state[a] = v;
 }
 document.addEventListener("input",(e)=>{
   const t = e.target;
@@ -4099,6 +4461,7 @@ function init(){
   save();
   navIniciar();          /* a primeira parada do histórico é a tela em que o app abriu */
   render();
+  nuvemIniciar();        /* se a sincronização estiver ligada, busca o que os convidados fizeram */
 
   /* dev check: nenhuma referência cruzada pode apontar para um id inexistente */
   const bad = [];
